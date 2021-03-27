@@ -22,19 +22,6 @@ jobs:
       run: cargo test --no-run --verbose
     - name: Run tests
       run: cargo test --verbose
-
-  test_linux_coinor:
-    name: Test Linux Coinor CBC
-    runs-on: ubuntu-latest    
-    steps:
-    - uses: actions/checkout@v2
-    - name: install dependencies
-      run:  |
-        sudo apt install coinor-libcbc-dev coinor-cbc
-    - name: Build
-      run: cargo test --no-run --verbose --features "native_coin_cbc minilp"
-    - name: Run tests
-      run: cargo test --verbose --features "native_coin_cbc minilp"
   
   test_windows:
     name: Test Windows Default
