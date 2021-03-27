@@ -1,15 +1,15 @@
 extern crate uuid;
-use self::uuid::Uuid;
 
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
 use std::fs::File;
-use std::io::{Error, BufReader, BufRead};
+use std::io::{BufRead, BufReader, Error};
 use std::process::Command;
 
-use dsl::LpProblem;
 use format::lp_format::*;
-use solvers::{Status, SolverTrait, SolverWithSolutionParsing, Solution};
+use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
+
+use self::uuid::Uuid;
 
 pub struct GlpkSolver {
     name: String,
@@ -42,7 +42,7 @@ impl GlpkSolver {
 }
 
 impl SolverWithSolutionParsing for GlpkSolver {
-    fn read_specific_solution<'a>(&self, f: &File, problem: Option<&'a LpProblem>) -> Result<Solution<'a>, String> {
+    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
         fn read_size(line: Option<Result<String, Error>>) -> Result<usize, String> {
             match line {
                 Some(Ok(l)) => match l.split_whitespace().nth(1) {
@@ -105,42 +105,26 @@ impl SolverWithSolutionParsing for GlpkSolver {
                 );
             }
         }
-        if let Some(p) = problem {
-            Ok( Solution::with_problem(status, vars_value, p) )
-        } else {
-            Ok( Solution::new(status, vars_value) )
-        }
+        Ok(Solution::new(status, vars_value))
     }
 }
 
 impl SolverTrait for GlpkSolver {
-    type P = LpProblem;
-    fn run<'a>(&self, problem: &'a Self::P) -> Result<Solution<'a>, String> {
-        let file_model = &format!("{}.lp", problem.unique_name);
+    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+        let file_model = problem.to_tmp_file()
+            .map_err(|e| format!("Unable to create glpk problem file: {}", e))?;
+        let r = Command::new(&self.command_name)
+            .arg("--lp")
+            .arg(file_model.path())
+            .arg("-o")
+            .arg(&self.temp_solution_file)
+            .output()
+            .map_err(|e| format!("error running glpk: {}", e))?;
 
-        match problem.write_lp(file_model) {
-            Ok(_) => {
-                let result = match Command::new(&self.command_name)
-                    .arg("--lp")
-                    .arg(file_model)
-                    .arg("-o")
-                    .arg(&self.temp_solution_file)
-                    .output()
-                    {
-                        Ok(r) => {
-                            if r.status.success() {
-                                self.read_solution(&self.temp_solution_file, Some(problem))
-                            } else {
-                                Err(r.status.to_string())
-                            }
-                        }
-                        Err(_) => Err(format!("Error running the {} solver", self.name)),
-                    };
-                let _ = fs::remove_file(&file_model);
-
-                result
-            }
-            Err(e) => Err(e.to_string()),
+        if r.status.success() {
+            self.read_solution(&self.temp_solution_file, Some(problem))
+        } else {
+            Err(r.status.to_string())
         }
     }
 }

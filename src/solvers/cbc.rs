@@ -1,15 +1,16 @@
 extern crate uuid;
-use self::uuid::Uuid;
 
-use std::fs;
 use std::collections::HashMap;
+use std::error::Error;
+use std::fs;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 use std::process::Command;
 
-use dsl::LpProblem;
 use format::lp_format::*;
-use solvers::{Status, SolverTrait, WithMaxSeconds, WithNbThreads, SolverWithSolutionParsing, Solution};
+use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads};
+
+use self::uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub struct CbcSolver {
@@ -53,15 +54,14 @@ impl CbcSolver {
 }
 
 impl SolverWithSolutionParsing for CbcSolver {
-    fn read_specific_solution<'a>(&self, f: &File, problem: Option<&'a LpProblem>) -> Result<Solution<'a>, String> {
-        let mut vars_value: HashMap<_, _> = HashMap::new();
+    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
+        let mut vars_value: HashMap<String, _> = HashMap::new();
 
         // populate default values for all vars
         // CBC keeps only non-zero values from a number of variables
         if let Some(p) = problem {
-            let variables = p.variables();
-            for (name, _) in variables {
-                vars_value.insert(name.clone(), 0.0);
+            for var in p.variables() {
+                vars_value.insert(var.name().to_string(), 0.0);
             }
         }
 
@@ -99,11 +99,7 @@ impl SolverWithSolutionParsing for CbcSolver {
                 return Err("Incorrect solution format".to_string());
             }
         }
-        if let Some(p) = problem {
-            Ok( Solution::with_problem(status, vars_value, p) )
-        } else {
-            Ok( Solution::new(status, vars_value) )
-        }
+        Ok(Solution::new(status, vars_value))
     }
 }
 
@@ -131,24 +127,21 @@ impl WithNbThreads<CbcSolver> for CbcSolver {
 }
 
 impl SolverTrait for CbcSolver {
-    type P = LpProblem;
-
-    fn run<'a>(&self, problem: &'a Self::P) -> Result<Solution<'a>, String> {
-        let file_model = format!("{}.lp", problem.unique_name);
-        problem.write_lp(&file_model).map_err(|e| e.to_string())?;
+    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+        let file_model = problem.to_tmp_file()
+            .map_err(|e| format!("Unable to create cbc problem file: {}", e))?;
 
         let mut params: HashMap<String, String> = Default::default();
         let optional_params: Vec<Option<(String, u32)>> = vec![
-            self.max_seconds().map(|s| ("seconds".to_owned(), s )),
-            self.nb_threads().map(|t| ("threads".to_owned(), t)) ];
+            self.max_seconds().map(|s| ("seconds".to_owned(), s)),
+            self.nb_threads().map(|t| ("threads".to_owned(), t))];
 
         for (arg, value) in optional_params.iter().flatten() {
             params.insert(arg.to_string(), value.to_string());
         }
-        params.iter().for_each( |(a,b)| println!("{},{}",a,b));
 
         let result = Command::new(&self.command_name)
-            .arg(&file_model)
+            .arg(&file_model.path())
             .args(params.iter().flat_map(|(k, v)| vec![k, v]))
             .arg("solve")
             .arg("solution")
@@ -162,8 +155,6 @@ impl SolverTrait for CbcSolver {
                     Err(r.status.to_string())
                 }
             });
-
-        let _ = fs::remove_file(file_model);
         result
     }
 }

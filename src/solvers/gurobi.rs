@@ -1,15 +1,15 @@
 extern crate uuid;
-use self::uuid::Uuid;
 
-use std::fs;
 use std::collections::HashMap;
+use std::fs;
 use std::fs::File;
-use std::io::{BufReader, BufRead};
+use std::io::{BufRead, BufReader};
 use std::process::Command;
 
-use dsl::LpProblem;
 use format::lp_format::*;
-use solvers::{Status, SolverTrait, SolverWithSolutionParsing, Solution};
+use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
+
+use self::uuid::Uuid;
 
 pub struct GurobiSolver {
     name: String,
@@ -35,7 +35,7 @@ impl GurobiSolver {
 }
 
 impl SolverWithSolutionParsing for GurobiSolver {
-    fn read_specific_solution<'a>(&self, f: &File, problem: Option<&'a LpProblem>) -> Result<Solution<'a>, String> {
+    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
         let mut vars_value: HashMap<_, _> = HashMap::new();
         let mut file = BufReader::new(f);
         let mut buffer = String::new();
@@ -65,49 +65,32 @@ impl SolverWithSolutionParsing for GurobiSolver {
         } else {
             return Err("Incorrect solution format".to_string());
         }
-        // TODO/FIX: always optimal if no err...
-        if let Some(p) = problem {
-            Ok( Solution::with_problem(Status::Optimal, vars_value, p) )
-        } else {
-            Ok( Solution::new(Status::Optimal, vars_value) )
-        }
+        Ok(Solution::new(Status::Optimal, vars_value))
     }
 }
 
 impl SolverTrait for GurobiSolver {
-    type P = LpProblem;
-    fn run<'a>(&self, problem: &'a Self::P) -> Result<Solution<'a>, String> {
-        let file_model = &format!("{}.lp", problem.unique_name);
+    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+        let file_model = problem.to_tmp_file()
+            .map_err(|e| format!("Unable to create gurobi problem file: {}", e))?;
 
-        match problem.write_lp(file_model) {
-            Ok(_) => {
-                let result = match Command::new(&self.command_name)
-                    .arg(format!("ResultFile={}", self.temp_solution_file))
-                    .arg(file_model)
-                    .output()
-                    {
-                        Ok(r) => {
-                            let mut status = Status::SubOptimal;
-                            let result = String::from_utf8(r.stdout).expect("");
-                            if result.contains("Optimal solution found")
-                            {
-                                status = Status::Optimal;
-                            } else if result.contains("infesible") {
-                                status = Status::Infeasible;
-                            }
-                            if r.status.success() {
-                                self.read_solution(&self.temp_solution_file, Some(problem)).map(|solution| Solution {status, ..solution.clone()} )
-                            } else {
-                                Err(r.status.to_string())
-                            }
-                        }
-                        Err(_) => Err(format!("Error running the {} solver", self.name)),
-                    };
-                let _ = fs::remove_file(&file_model);
-
-                result
-            }
-            Err(e) => Err(e.to_string()),
+        let r = Command::new(&self.command_name)
+            .arg(format!("ResultFile={}", self.temp_solution_file))
+            .arg(file_model.path())
+            .output()
+            .map_err(|e| format!("Error running the {} solver: {}", self.name, e))?;
+        let mut status = Status::SubOptimal;
+        let result = String::from_utf8(r.stdout).expect("");
+        if result.contains("Optimal solution found")
+        {
+            status = Status::Optimal;
+        } else if result.contains("infeasible") {
+            status = Status::Infeasible;
         }
+        if !r.status.success() {
+            return Err(r.status.to_string())
+        }
+        self.read_solution(&self.temp_solution_file, Some(problem))
+            .map(|solution| Solution { status, ..solution.clone() })
     }
 }
