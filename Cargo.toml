@@ -7,7 +7,7 @@ repository = "https://github.com/rust-or/lp-solvers"
 readme = "README.md"
 license = "MIT"
 keywords = ["linear-programming", "linear-models", "optimization", "solver", "formulation" ]
-documentation = "https://jcavat.github.io/rust-lp-modeler"
+documentation = "https://docs.rs/lp_solvers"
 edition = "2018"
 
 exclude = [
