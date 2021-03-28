@@ -44,11 +44,11 @@ impl AsVariable for Variable {
 }
 
 pub struct Problem<EXPR = StrExpression, VAR = Variable> {
-    name: String,
-    sense: LpObjective,
-    objective: EXPR,
-    variables: Vec<VAR>,
-    constraints: Vec<Constraint<EXPR>>,
+    pub name: String,
+    pub sense: LpObjective,
+    pub objective: EXPR,
+    pub variables: Vec<VAR>,
+    pub constraints: Vec<Constraint<EXPR>>,
 }
 
 impl<'a, EXPR: 'a, VAR: 'a> LpProblem<'a> for Problem<EXPR, VAR>

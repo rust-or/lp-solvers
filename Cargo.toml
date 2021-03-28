@@ -1,9 +1,9 @@
 [package]
 name = "lp-solvers"
-version = "0.5.0"
-authors = ["Joel Cavat <jcavat@gmail.com>"]
+version = "0.0.1"
+authors = ["Joel Cavat <jcavat@gmail.com>", "Ophir LOJKINE"]
 description = ".lp file format implementation and external solver invocation functions such as CBC, Gurobi, lp_solve, ..."
-repository = "https://github.com/jcavat/rust-lp-modeler"
+repository = "https://github.com/rust-or/lp-solvers"
 readme = "README.md"
 license = "MIT"
 keywords = ["linear-programming", "linear-models", "optimization", "solver", "formulation" ]

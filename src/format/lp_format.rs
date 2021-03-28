@@ -177,7 +177,7 @@ fn write_bounds_lp_file_block<'a>(prob: &'a impl LpProblem<'a>, f: &mut Formatte
         }
     }
     if !integers.is_empty() {
-        writeln!(f, "Generals")?;
+        writeln!(f, "\nGenerals")?;
         for name in integers.iter() {
             writeln!(f, "  {}", name)?;
         }
