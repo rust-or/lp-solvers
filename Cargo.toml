@@ -8,7 +8,7 @@ readme = "README.md"
 license = "MIT"
 keywords = ["linear-programming", "linear-models", "optimization", "solver", "formulation" ]
 documentation = "https://jcavat.github.io/rust-lp-modeler"
-edition = "2015"
+edition = "2018"
 
 exclude = [
     "src/main.rs",
@@ -22,5 +22,4 @@ exclude = [
 ]
 
 [dependencies]
-uuid = { version = "0.7.4", features = ["v4"] }
 tempfile = "3"

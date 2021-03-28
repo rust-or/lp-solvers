@@ -1,14 +1,12 @@
-extern crate uuid;
-
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process::Command;
 
-use format::lp_format::*;
-use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads};
-
-use self::uuid::Uuid;
+use crate::format::lp_format::*;
+use crate::solvers::{
+    Solution, SolverTrait, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads,
+};
 
 #[derive(Debug, Clone)]
 pub struct CbcSolver {
@@ -20,7 +18,9 @@ pub struct CbcSolver {
 }
 
 impl Default for CbcSolver {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl CbcSolver {
@@ -28,7 +28,11 @@ impl CbcSolver {
         CbcSolver {
             name: "Cbc".to_string(),
             command_name: "cbc".to_string(),
-            temp_solution_file: format!("{}.sol", Uuid::new_v4().to_string()),
+            temp_solution_file: tempfile::NamedTempFile::new()
+                .unwrap()
+                .path()
+                .to_string_lossy()
+                .to_string(),
             threads: None,
             seconds: None,
         }
@@ -56,7 +60,11 @@ impl CbcSolver {
 }
 
 impl SolverWithSolutionParsing for CbcSolver {
-    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(
+        &self,
+        f: &File,
+        problem: Option<&'a P>,
+    ) -> Result<Solution, String> {
         let mut vars_value: HashMap<String, _> = HashMap::new();
 
         // populate default values for all vars
@@ -130,13 +138,15 @@ impl WithNbThreads<CbcSolver> for CbcSolver {
 
 impl SolverTrait for CbcSolver {
     fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem.to_tmp_file()
+        let file_model = problem
+            .to_tmp_file()
             .map_err(|e| format!("Unable to create cbc problem file: {}", e))?;
 
         let mut params: HashMap<String, String> = Default::default();
         let optional_params: Vec<Option<(String, u32)>> = vec![
             self.max_seconds().map(|s| ("seconds".to_owned(), s)),
-            self.nb_threads().map(|t| ("threads".to_owned(), t))];
+            self.nb_threads().map(|t| ("threads".to_owned(), t)),
+        ];
 
         for (arg, value) in optional_params.iter().flatten() {
             params.insert(arg.to_string(), value.to_string());

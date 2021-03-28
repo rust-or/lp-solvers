@@ -1,7 +1,9 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-use format::lp_format::{AsVariable, Constraint, LpObjective, LpProblem, WriteToLpFileFormat};
+use crate::format::lp_format::{
+    AsVariable, Constraint, LpObjective, LpProblem, WriteToLpFileFormat,
+};
 
 /// A string that is a valid expression in the .lp format for the solver you are using
 pub struct StrExpression(pub String);
@@ -49,13 +51,14 @@ pub struct Problem<EXPR = StrExpression, VAR = Variable> {
     constraints: Vec<Constraint<EXPR>>,
 }
 
-impl<'a, EXPR: 'a, VAR: 'a> LpProblem<'a>
-for Problem<EXPR, VAR>
-    where &'a VAR: AsVariable,
-          &'a EXPR: WriteToLpFileFormat {
+impl<'a, EXPR: 'a, VAR: 'a> LpProblem<'a> for Problem<EXPR, VAR>
+where
+    &'a VAR: AsVariable,
+    &'a EXPR: WriteToLpFileFormat,
+{
     type Variable = &'a VAR;
     type Expression = &'a EXPR;
-    type ConstraintIterator = Box<dyn Iterator<Item=Constraint<&'a EXPR>> + 'a>;
+    type ConstraintIterator = Box<dyn Iterator<Item = Constraint<&'a EXPR>> + 'a>;
     type VariableIterator = std::slice::Iter<'a, VAR>;
 
     fn name(&self) -> &str {
@@ -75,8 +78,14 @@ for Problem<EXPR, VAR>
     }
 
     fn constraints(&'a self) -> Self::ConstraintIterator {
-        Box::new(self.constraints.iter()
-            .map(|Constraint { lhs, operator, rhs }| Constraint { lhs, operator: *operator, rhs: *rhs }
-            ))
+        Box::new(
+            self.constraints
+                .iter()
+                .map(|Constraint { lhs, operator, rhs }| Constraint {
+                    lhs,
+                    operator: *operator,
+                    rhs: *rhs,
+                }),
+        )
     }
 }

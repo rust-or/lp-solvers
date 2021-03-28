@@ -1,14 +1,10 @@
-extern crate uuid;
-
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::process::Command;
 
-use format::lp_format::*;
-use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
-
-use self::uuid::Uuid;
+use crate::format::lp_format::*;
+use crate::solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
 
 pub struct GlpkSolver {
     name: String,
@@ -27,7 +23,11 @@ impl GlpkSolver {
         GlpkSolver {
             name: "Glpk".to_string(),
             command_name: "glpsol".to_string(),
-            temp_solution_file: format!("{}.sol", Uuid::new_v4().to_string()),
+            temp_solution_file: tempfile::NamedTempFile::new()
+                .unwrap()
+                .path()
+                .to_string_lossy()
+                .to_string(),
         }
     }
     pub fn command_name(&self, command_name: String) -> GlpkSolver {
@@ -47,7 +47,11 @@ impl GlpkSolver {
 }
 
 impl SolverWithSolutionParsing for GlpkSolver {
-    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(
+        &self,
+        f: &File,
+        _problem: Option<&'a P>,
+    ) -> Result<Solution, String> {
         fn read_size(line: Option<Result<String, Error>>) -> Result<usize, String> {
             match line {
                 Some(Ok(l)) => match l.split_whitespace().nth(1) {
@@ -79,9 +83,7 @@ impl SolverWithSolutionParsing for GlpkSolver {
                 "INFEASIBLE (FINAL)" | "INTEGER EMPTY" => Status::Infeasible,
                 "UNDEFINED" => Status::NotSolved,
                 "INTEGER UNDEFINED" | "UNBOUNDED" => Status::Unbounded,
-                _ => {
-                    return Err("Incorrect solution format: Unknown solution status".to_string())
-                }
+                _ => return Err("Incorrect solution format: Unknown solution status".to_string()),
             },
             _ => return Err("Incorrect solution format: No solution status found".to_string()),
         };
@@ -90,9 +92,7 @@ impl SolverWithSolutionParsing for GlpkSolver {
             let line = match result_lines.next() {
                 Some(Ok(l)) => l,
                 _ => {
-                    return Err(
-                        "Incorrect solution format: Not all columns are present".to_string()
-                    )
+                    return Err("Incorrect solution format: Not all columns are present".to_string())
                 }
             };
             let result_line: Vec<_> = line.split_whitespace().collect();
@@ -105,8 +105,7 @@ impl SolverWithSolutionParsing for GlpkSolver {
                 }
             } else {
                 return Err(
-                    "Incorrect solution format: Column specification has to few fields"
-                        .to_string(),
+                    "Incorrect solution format: Column specification has to few fields".to_string(),
                 );
             }
         }
@@ -116,7 +115,8 @@ impl SolverWithSolutionParsing for GlpkSolver {
 
 impl SolverTrait for GlpkSolver {
     fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem.to_tmp_file()
+        let file_model = problem
+            .to_tmp_file()
             .map_err(|e| format!("Unable to create glpk problem file: {}", e))?;
         let r = Command::new(&self.command_name)
             .arg("--lp")

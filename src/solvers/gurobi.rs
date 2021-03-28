@@ -1,14 +1,10 @@
-extern crate uuid;
-
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process::Command;
 
-use format::lp_format::*;
-use solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
-
-use self::uuid::Uuid;
+use crate::format::lp_format::*;
+use crate::solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
 
 pub struct GurobiSolver {
     name: String,
@@ -27,7 +23,11 @@ impl GurobiSolver {
         GurobiSolver {
             name: "Gurobi".to_string(),
             command_name: "gurobi_cl".to_string(),
-            temp_solution_file: format!("{}.sol", Uuid::new_v4().to_string()),
+            temp_solution_file: tempfile::NamedTempFile::new()
+                .unwrap()
+                .path()
+                .to_string_lossy()
+                .to_string(),
         }
     }
     pub fn command_name(&self, command_name: String) -> GurobiSolver {
@@ -40,7 +40,11 @@ impl GurobiSolver {
 }
 
 impl SolverWithSolutionParsing for GurobiSolver {
-    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(
+        &self,
+        f: &File,
+        _problem: Option<&'a P>,
+    ) -> Result<Solution, String> {
         let mut vars_value: HashMap<_, _> = HashMap::new();
         let mut file = BufReader::new(f);
         let mut buffer = String::new();
@@ -76,7 +80,8 @@ impl SolverWithSolutionParsing for GurobiSolver {
 
 impl SolverTrait for GurobiSolver {
     fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem.to_tmp_file()
+        let file_model = problem
+            .to_tmp_file()
             .map_err(|e| format!("Unable to create gurobi problem file: {}", e))?;
 
         let r = Command::new(&self.command_name)
@@ -86,14 +91,13 @@ impl SolverTrait for GurobiSolver {
             .map_err(|e| format!("Error running the {} solver: {}", self.name, e))?;
         let mut status = Status::SubOptimal;
         let result = String::from_utf8(r.stdout).expect("");
-        if result.contains("Optimal solution found")
-        {
+        if result.contains("Optimal solution found") {
             status = Status::Optimal;
         } else if result.contains("infeasible") {
             status = Status::Infeasible;
         }
         if !r.status.success() {
-            return Err(r.status.to_string())
+            return Err(r.status.to_string());
         }
         self.read_solution(&self.temp_solution_file, Some(problem))
             .map(|solution| Solution { status, ..solution })

@@ -61,19 +61,24 @@ pub struct Constraint<E> {
 impl<E: WriteToLpFileFormat> WriteToLpFileFormat for Constraint<E> {
     fn to_lp_file_format(&self, f: &mut Formatter) -> fmt::Result {
         self.lhs.to_lp_file_format(f)?;
-        write!(f, " {} {}", match self.operator {
-            Ordering::Equal => "=",
-            Ordering::Less => "<=",
-            Ordering::Greater => ">=",
-        }, self.rhs)
+        write!(
+            f,
+            " {} {}",
+            match self.operator {
+                Ordering::Equal => "=",
+                Ordering::Less => "<=",
+                Ordering::Greater => ">=",
+            },
+            self.rhs
+        )
     }
 }
 
 pub trait LpProblem<'a>: Sized {
     type Variable: AsVariable;
     type Expression: WriteToLpFileFormat;
-    type ConstraintIterator: Iterator<Item=Constraint<Self::Expression>>;
-    type VariableIterator: Iterator<Item=Self::Variable>;
+    type ConstraintIterator: Iterator<Item = Constraint<Self::Expression>>;
+    type VariableIterator: Iterator<Item = Self::Variable>;
 
     fn name(&self) -> &str;
     fn variables(&'a self) -> Self::VariableIterator;
@@ -88,10 +93,16 @@ pub trait LpProblem<'a>: Sized {
         write!(f, "\nEnd\n")?;
         Ok(())
     }
-    fn display_lp(&'a self) -> DisplayedLp<'_, Self> where Self: Sized {
+    fn display_lp(&'a self) -> DisplayedLp<'_, Self>
+    where
+        Self: Sized,
+    {
         DisplayedLp(&self)
     }
-    fn to_tmp_file(&'a self) -> Result<NamedTempFile> where Self: Sized {
+    fn to_tmp_file(&'a self) -> Result<NamedTempFile>
+    where
+        Self: Sized,
+    {
         let mut f = tempfile::Builder::new()
             .prefix(self.name())
             .suffix(".lp")
@@ -111,18 +122,24 @@ impl<'a, P: LpProblem<'a>> std::fmt::Display for DisplayedLp<'a, P> {
     }
 }
 
-fn objective_lp_file_block<'a>(prob: &'a impl LpProblem<'a>, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+fn objective_lp_file_block<'a>(
+    prob: &'a impl LpProblem<'a>,
+    f: &mut std::fmt::Formatter,
+) -> std::fmt::Result {
     // Write objectives
     let obj_type = match prob.sense() {
         LpObjective::Maximize => "Maximize\n  ",
-        LpObjective::Minimize => "Minimize\n  "
+        LpObjective::Minimize => "Minimize\n  ",
     };
     write!(f, "{}obj: ", obj_type)?;
     prob.objective().to_lp_file_format(f)?;
     Ok(())
 }
 
-fn write_constraints_lp_file_block<'a>(prob: &'a impl LpProblem<'a>, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+fn write_constraints_lp_file_block<'a>(
+    prob: &'a impl LpProblem<'a>,
+    f: &mut std::fmt::Formatter,
+) -> std::fmt::Result {
     let mut wrote_header = false;
     for (idx, constraint) in prob.constraints().enumerate() {
         if !wrote_header {

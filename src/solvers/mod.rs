@@ -27,15 +27,15 @@ use std::collections::HashMap;
 use std::fs;
 use std::fs::File;
 
-use format::lp_format::LpProblem;
+use crate::format::lp_format::LpProblem;
 
 pub use self::cbc::*;
 pub use self::glpk::*;
 pub use self::gurobi::*;
 
 pub mod cbc;
-pub mod gurobi;
 pub mod glpk;
+pub mod gurobi;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Status {
@@ -54,10 +54,7 @@ pub struct Solution {
 
 impl Solution {
     pub fn new(status: Status, results: HashMap<String, f32>) -> Solution {
-        Solution {
-            status,
-            results,
-        }
+        Solution { status, results }
     }
 }
 
@@ -66,7 +63,11 @@ pub trait SolverTrait {
 }
 
 pub trait SolverWithSolutionParsing {
-    fn read_solution<'a, P: LpProblem<'a>>(&self, temp_solution_file: &str, problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_solution<'a, P: LpProblem<'a>>(
+        &self,
+        temp_solution_file: &str,
+        problem: Option<&'a P>,
+    ) -> Result<Solution, String> {
         match File::open(temp_solution_file) {
             Ok(f) => {
                 let res = self.read_specific_solution(&f, problem)?;
@@ -76,7 +77,11 @@ pub trait SolverWithSolutionParsing {
             Err(_) => Err("Cannot open file".to_string()),
         }
     }
-    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String>;
+    fn read_specific_solution<'a, P: LpProblem<'a>>(
+        &self,
+        f: &File,
+        problem: Option<&'a P>,
+    ) -> Result<Solution, String>;
 }
 
 pub trait WithMaxSeconds<T> {
