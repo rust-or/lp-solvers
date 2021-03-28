@@ -66,14 +66,14 @@ pub trait SolverTrait {
 }
 
 pub trait SolverWithSolutionParsing {
-    fn read_solution<'a, P: LpProblem<'a>>(&self, temp_solution_file: &String, problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_solution<'a, P: LpProblem<'a>>(&self, temp_solution_file: &str, problem: Option<&'a P>) -> Result<Solution, String> {
         match File::open(temp_solution_file) {
             Ok(f) => {
                 let res = self.read_specific_solution(&f, problem)?;
                 let _ = fs::remove_file(temp_solution_file);
                 Ok(res)
             }
-            Err(_) => return Err("Cannot open file".to_string()),
+            Err(_) => Err("Cannot open file".to_string()),
         }
     }
     fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String>;

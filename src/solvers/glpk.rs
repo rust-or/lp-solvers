@@ -16,6 +16,12 @@ pub struct GlpkSolver {
     temp_solution_file: String,
 }
 
+impl Default for GlpkSolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GlpkSolver {
     pub fn new() -> GlpkSolver {
         GlpkSolver {
@@ -47,11 +53,11 @@ impl SolverWithSolutionParsing for GlpkSolver {
                 Some(Ok(l)) => match l.split_whitespace().nth(1) {
                     Some(value) => match value.parse::<usize>() {
                         Ok(v) => Ok(v),
-                        _ => return Err("Incorrect solution format".to_string()),
+                        _ => Err("Incorrect solution format".to_string()),
                     },
-                    _ => return Err("Incorrect solution format".to_string()),
+                    _ => Err("Incorrect solution format".to_string()),
                 },
-                _ => return Err("Incorrect solution format".to_string()),
+                _ => Err("Incorrect solution format".to_string()),
             }
         }
         let mut vars_value: HashMap<_, _> = HashMap::new();
@@ -61,11 +67,11 @@ impl SolverWithSolutionParsing for GlpkSolver {
         let mut iter = file.lines();
         let row = match read_size(iter.nth(1)) {
             Ok(value) => value,
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e),
         };
-        let col = match read_size(iter.nth(0)) {
+        let col = match read_size(iter.next()) {
             Ok(value) => value,
-            Err(e) => return Err(e.to_string()),
+            Err(e) => return Err(e),
         };
         let status = match iter.nth(1) {
             Some(Ok(status_line)) => match &status_line[12..] {

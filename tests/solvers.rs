@@ -1,12 +1,7 @@
 extern crate lp_solvers;
 
-use std::{fmt, fs};
-use std::cmp::Ordering;
-use std::fmt::Formatter;
-use std::iter::empty;
-use std::iter::Empty;
+use std:: fs;
 
-use lp_solvers::format::lp_format::{AsVariable, LpObjective, LpProblem, WriteToLpFileFormat};
 use lp_solvers::problem::Problem;
 use lp_solvers::solvers::{CbcSolver, GlpkSolver, Solution, SolverWithSolutionParsing, Status};
 

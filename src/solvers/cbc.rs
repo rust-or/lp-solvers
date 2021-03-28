@@ -19,6 +19,10 @@ pub struct CbcSolver {
     seconds: Option<u32>,
 }
 
+impl Default for CbcSolver {
+    fn default() -> Self { Self::new() }
+}
+
 impl CbcSolver {
     pub fn new() -> CbcSolver {
         CbcSolver {

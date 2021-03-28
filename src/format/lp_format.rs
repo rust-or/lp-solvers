@@ -81,8 +81,8 @@ pub trait LpProblem<'a>: Sized {
     fn sense(&'a self) -> LpObjective;
     fn constraints(&'a self) -> Self::ConstraintIterator;
     fn to_lp_file_format(&'a self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        write!(f, "\\ {}\n\n", self.name());
-        objective_lp_file_block(self, f);
+        write!(f, "\\ {}\n\n", self.name())?;
+        objective_lp_file_block(self, f)?;
         write_constraints_lp_file_block(self, f)?;
         write_bounds_lp_file_block(self, f)?;
         write!(f, "\nEnd\n")?;
@@ -129,9 +129,9 @@ fn write_constraints_lp_file_block<'a>(prob: &'a impl LpProblem<'a>, f: &mut std
             write!(f, "\n\nSubject To\n")?;
             wrote_header = true;
         }
-        write!(f, "  c{}: ", idx);
+        write!(f, "  c{}: ", idx)?;
         constraint.to_lp_file_format(f)?;
-        write!(f, "\n")?;
+        writeln!(f)?;
     }
     Ok(())
 }
@@ -154,15 +154,15 @@ fn write_bounds_lp_file_block<'a>(prob: &'a impl LpProblem<'a>, f: &mut Formatte
         if low.is_infinite() && up.is_infinite() {
             write!(f, " free")?;
         }
-        write!(f, "\n")?;
+        writeln!(f)?;
         if variable.is_integer() {
             integers.push(name);
         }
     }
     if !integers.is_empty() {
-        write!(f, "Generals\n")?;
+        writeln!(f, "Generals")?;
         for name in integers.iter() {
-            write!(f, "  {}\n", name)?;
+            writeln!(f, "  {}", name)?;
         }
     }
     Ok(())

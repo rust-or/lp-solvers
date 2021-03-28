@@ -16,6 +16,12 @@ pub struct GurobiSolver {
     temp_solution_file: String,
 }
 
+impl Default for GurobiSolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GurobiSolver {
     pub fn new() -> GurobiSolver {
         GurobiSolver {
@@ -40,7 +46,7 @@ impl SolverWithSolutionParsing for GurobiSolver {
         let mut buffer = String::new();
         let _ = file.read_line(&mut buffer);
 
-        if let Some(_) = buffer.split(" ").next() {
+        if buffer.split(' ').next().is_some() {
             for line in file.lines() {
                 let l = line.unwrap();
 
@@ -55,7 +61,7 @@ impl SolverWithSolutionParsing for GurobiSolver {
                         Ok(n) => {
                             vars_value.insert(result_line[0].to_string(), n);
                         }
-                        Err(e) => return Err(format!("{}", e.to_string())),
+                        Err(e) => return Err(e.to_string()),
                     }
                 } else {
                     return Err("Incorrect solution format".to_string());
@@ -90,6 +96,6 @@ impl SolverTrait for GurobiSolver {
             return Err(r.status.to_string())
         }
         self.read_solution(&self.temp_solution_file, Some(problem))
-            .map(|solution| Solution { status, ..solution.clone() })
+            .map(|solution| Solution { status, ..solution })
     }
 }
