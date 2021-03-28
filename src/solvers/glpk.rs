@@ -1,7 +1,6 @@
 extern crate uuid;
 
 use std::collections::HashMap;
-use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
 use std::process::Command;
@@ -42,7 +41,7 @@ impl GlpkSolver {
 }
 
 impl SolverWithSolutionParsing for GlpkSolver {
-    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
         fn read_size(line: Option<Result<String, Error>>) -> Result<usize, String> {
             match line {
                 Some(Ok(l)) => match l.split_whitespace().nth(1) {
@@ -110,7 +109,7 @@ impl SolverWithSolutionParsing for GlpkSolver {
 }
 
 impl SolverTrait for GlpkSolver {
-    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
         let file_model = problem.to_tmp_file()
             .map_err(|e| format!("Unable to create glpk problem file: {}", e))?;
         let r = Command::new(&self.command_name)

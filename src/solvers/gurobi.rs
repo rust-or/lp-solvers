@@ -1,7 +1,6 @@
 extern crate uuid;
 
 use std::collections::HashMap;
-use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process::Command;
@@ -35,7 +34,7 @@ impl GurobiSolver {
 }
 
 impl SolverWithSolutionParsing for GurobiSolver {
-    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, _problem: Option<&'a P>) -> Result<Solution, String> {
         let mut vars_value: HashMap<_, _> = HashMap::new();
         let mut file = BufReader::new(f);
         let mut buffer = String::new();
@@ -70,7 +69,7 @@ impl SolverWithSolutionParsing for GurobiSolver {
 }
 
 impl SolverTrait for GurobiSolver {
-    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
         let file_model = problem.to_tmp_file()
             .map_err(|e| format!("Unable to create gurobi problem file: {}", e))?;
 

@@ -10,3 +10,4 @@ pub mod format {
 }
 
 pub mod solvers;
+pub mod problem;

@@ -1,8 +1,6 @@
 extern crate uuid;
 
 use std::collections::HashMap;
-use std::error::Error;
-use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::process::Command;
@@ -54,7 +52,7 @@ impl CbcSolver {
 }
 
 impl SolverWithSolutionParsing for CbcSolver {
-    fn read_specific_solution<'a, P: LpProblem>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
+    fn read_specific_solution<'a, P: LpProblem<'a>>(&self, f: &File, problem: Option<&'a P>) -> Result<Solution, String> {
         let mut vars_value: HashMap<String, _> = HashMap::new();
 
         // populate default values for all vars
@@ -127,7 +125,7 @@ impl WithNbThreads<CbcSolver> for CbcSolver {
 }
 
 impl SolverTrait for CbcSolver {
-    fn run<P: LpProblem>(&self, problem: &P) -> Result<Solution, String> {
+    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
         let file_model = problem.to_tmp_file()
             .map_err(|e| format!("Unable to create cbc problem file: {}", e))?;
 
