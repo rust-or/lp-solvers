@@ -24,8 +24,13 @@
 //! [installing external solvers](https://github.com/jcavat/rust-lp-modeler#installing-external-solvers).
 
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs;
 use std::fs::File;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use tempfile::NamedTempFile;
 
 use crate::format::lp_format::LpProblem;
 
@@ -62,10 +67,28 @@ pub trait SolverTrait {
     fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String>;
 }
 
+pub trait SolverProgram {
+    /// Returns the commandline program name
+    fn command_name(&self) -> &str;
+    /// Returns the commandline arguments
+    fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString>;
+    /// If there is a predefined solution filename
+    fn preferred_temp_solution_file(&self) -> Option<&Path> { None }
+    fn parse_stdout_status(&self, _stdout: &[u8]) -> Option<Status> { None }
+}
+
 pub trait SolverWithSolutionParsing {
+    #[deprecated]
     fn read_solution<'a, P: LpProblem<'a>>(
         &self,
         temp_solution_file: &str,
+        problem: Option<&'a P>,
+    ) -> Result<Solution, String> {
+        Self::read_solution_from_path(self, &PathBuf::from(temp_solution_file), problem)
+    }
+    fn read_solution_from_path<'a, P: LpProblem<'a>>(
+        &self,
+        temp_solution_file: &Path,
         problem: Option<&'a P>,
     ) -> Result<Solution, String> {
         match File::open(temp_solution_file) {
@@ -84,6 +107,30 @@ pub trait SolverWithSolutionParsing {
     ) -> Result<Solution, String>;
 }
 
+impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
+    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
+        let command_name = self.command_name();
+        let file_model = problem
+            .to_tmp_file()
+            .map_err(|e| format!("Unable to create {} problem file: {}", command_name, e))?;
+
+        let named_temp;
+        let temp_solution_file = if let Some(p) = self.preferred_temp_solution_file() {
+            p
+        } else {
+            named_temp = NamedTempFile::new().map_err(|e| e.to_string())?;
+            named_temp.path()
+        };
+        let output = Command::new(command_name)
+            .args(self.arguments(file_model.path(), temp_solution_file))
+            .output()
+            .map_err(|e| format!("Error while running {}: {}", command_name, e))?;
+        if !output.status.success() {
+            return Err(format!("{} exited with status {}", command_name, output.status));
+        }
+        self.read_solution_from_path(temp_solution_file, Some(problem))
+    }
+}
 pub trait WithMaxSeconds<T> {
     fn max_seconds(&self) -> Option<u32>;
     fn with_max_seconds(&self, seconds: u32) -> T;

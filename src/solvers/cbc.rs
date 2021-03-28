@@ -1,18 +1,17 @@
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::process::Command;
+use std::path::{Path, PathBuf};
 
 use crate::format::lp_format::*;
-use crate::solvers::{
-    Solution, SolverTrait, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads,
-};
+use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads};
 
 #[derive(Debug, Clone)]
 pub struct CbcSolver {
     name: String,
     command_name: String,
-    temp_solution_file: String,
+    temp_solution_file: Option<PathBuf>,
     threads: Option<u32>,
     seconds: Option<u32>,
 }
@@ -28,11 +27,7 @@ impl CbcSolver {
         CbcSolver {
             name: "Cbc".to_string(),
             command_name: "cbc".to_string(),
-            temp_solution_file: tempfile::NamedTempFile::new()
-                .unwrap()
-                .path()
-                .to_string_lossy()
-                .to_string(),
+            temp_solution_file: None,
             threads: None,
             seconds: None,
         }
@@ -52,7 +47,7 @@ impl CbcSolver {
         CbcSolver {
             name: self.name.clone(),
             command_name: self.command_name.clone(),
-            temp_solution_file,
+            temp_solution_file: Some(temp_solution_file.into()),
             threads: None,
             seconds: None,
         }
@@ -136,37 +131,35 @@ impl WithNbThreads<CbcSolver> for CbcSolver {
     }
 }
 
-impl SolverTrait for CbcSolver {
-    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem
-            .to_tmp_file()
-            .map_err(|e| format!("Unable to create cbc problem file: {}", e))?;
+impl SolverProgram for CbcSolver {
+    fn command_name(&self) -> &str {
+        &self.command_name
+    }
 
-        let mut params: HashMap<String, String> = Default::default();
-        let optional_params: Vec<Option<(String, u32)>> = vec![
-            self.max_seconds().map(|s| ("seconds".to_owned(), s)),
-            self.nb_threads().map(|t| ("threads".to_owned(), t)),
-        ];
-
-        for (arg, value) in optional_params.iter().flatten() {
-            params.insert(arg.to_string(), value.to_string());
+    fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
+        let mut args = vec![lp_file.as_os_str().to_owned()];
+        if let Some(s) = self.max_seconds() {
+            args.push("seconds".into());
+            args.push(s.to_string().into());
         }
+        for (name, value) in [
+            ("seconds", self.max_seconds()),
+            ("threads", self.nb_threads()),
+        ].iter() {
+            if let Some(val) = value {
+                args.push(name.into());
+                args.push(val.to_string().into());
+            }
+        }
+        args.extend_from_slice(&[
+            "solve".into(),
+            "solution".into(),
+            solution_file.into(),
+        ]);
+        args
+    }
 
-        let result = Command::new(&self.command_name)
-            .arg(&file_model.path())
-            .args(params.iter().flat_map(|(k, v)| vec![k, v]))
-            .arg("solve")
-            .arg("solution")
-            .arg(&self.temp_solution_file)
-            .output()
-            .map_err(|_| format!("Error running the {} solver", self.name))
-            .and_then(|r| {
-                if r.status.success() {
-                    self.read_solution(&self.temp_solution_file, Some(problem))
-                } else {
-                    Err(r.status.to_string())
-                }
-            });
-        result
+    fn preferred_temp_solution_file(&self) -> Option<&Path> {
+        self.temp_solution_file.as_deref()
     }
 }

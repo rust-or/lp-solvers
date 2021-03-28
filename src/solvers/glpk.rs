@@ -1,15 +1,16 @@
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Error};
-use std::process::Command;
+use std::path::{Path, PathBuf};
 
 use crate::format::lp_format::*;
-use crate::solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
+use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
 pub struct GlpkSolver {
     name: String,
     command_name: String,
-    temp_solution_file: String,
+    temp_solution_file: Option<PathBuf>,
 }
 
 impl Default for GlpkSolver {
@@ -23,11 +24,7 @@ impl GlpkSolver {
         GlpkSolver {
             name: "Glpk".to_string(),
             command_name: "glpsol".to_string(),
-            temp_solution_file: tempfile::NamedTempFile::new()
-                .unwrap()
-                .path()
-                .to_string_lossy()
-                .to_string(),
+            temp_solution_file: None,
         }
     }
     pub fn command_name(&self, command_name: String) -> GlpkSolver {
@@ -41,7 +38,7 @@ impl GlpkSolver {
         GlpkSolver {
             name: self.name.clone(),
             command_name: self.command_name.clone(),
-            temp_solution_file,
+            temp_solution_file: Some(temp_solution_file.into()),
         }
     }
 }
@@ -113,23 +110,19 @@ impl SolverWithSolutionParsing for GlpkSolver {
     }
 }
 
-impl SolverTrait for GlpkSolver {
-    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem
-            .to_tmp_file()
-            .map_err(|e| format!("Unable to create glpk problem file: {}", e))?;
-        let r = Command::new(&self.command_name)
-            .arg("--lp")
-            .arg(file_model.path())
-            .arg("-o")
-            .arg(&self.temp_solution_file)
-            .output()
-            .map_err(|e| format!("error running glpk: {}", e))?;
+impl SolverProgram for GlpkSolver {
+    fn command_name(&self) -> &str {
+        &self.command_name
+    }
 
-        if r.status.success() {
-            self.read_solution(&self.temp_solution_file, Some(problem))
-        } else {
-            Err(r.status.to_string())
-        }
+    fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
+        vec!["--lp".into(),
+             lp_file.into(),
+             "-o".into(),
+             solution_file.into()]
+    }
+
+    fn preferred_temp_solution_file(&self) -> Option<&Path> {
+        unimplemented!()
     }
 }

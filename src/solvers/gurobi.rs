@@ -1,15 +1,16 @@
 use std::collections::HashMap;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
-use std::process::Command;
+use std::path::{Path, PathBuf};
 
 use crate::format::lp_format::*;
-use crate::solvers::{Solution, SolverTrait, SolverWithSolutionParsing, Status};
+use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
 pub struct GurobiSolver {
     name: String,
     command_name: String,
-    temp_solution_file: String,
+    temp_solution_file: Option<PathBuf>,
 }
 
 impl Default for GurobiSolver {
@@ -23,11 +24,7 @@ impl GurobiSolver {
         GurobiSolver {
             name: "Gurobi".to_string(),
             command_name: "gurobi_cl".to_string(),
-            temp_solution_file: tempfile::NamedTempFile::new()
-                .unwrap()
-                .path()
-                .to_string_lossy()
-                .to_string(),
+            temp_solution_file: None,
         }
     }
     pub fn command_name(&self, command_name: String) -> GurobiSolver {
@@ -78,28 +75,33 @@ impl SolverWithSolutionParsing for GurobiSolver {
     }
 }
 
-impl SolverTrait for GurobiSolver {
-    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
-        let file_model = problem
-            .to_tmp_file()
-            .map_err(|e| format!("Unable to create gurobi problem file: {}", e))?;
-
-        let r = Command::new(&self.command_name)
-            .arg(format!("ResultFile={}", self.temp_solution_file))
-            .arg(file_model.path())
-            .output()
-            .map_err(|e| format!("Error running the {} solver: {}", self.name, e))?;
-        let mut status = Status::SubOptimal;
-        let result = String::from_utf8(r.stdout).expect("");
-        if result.contains("Optimal solution found") {
-            status = Status::Optimal;
-        } else if result.contains("infeasible") {
-            status = Status::Infeasible;
-        }
-        if !r.status.success() {
-            return Err(r.status.to_string());
-        }
-        self.read_solution(&self.temp_solution_file, Some(problem))
-            .map(|solution| Solution { status, ..solution })
+impl SolverProgram for GurobiSolver {
+    fn command_name(&self) -> &str {
+        &self.command_name
     }
+
+    fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
+        let mut arg0: OsString = "ResultFile=".into();
+        arg0.push(solution_file.as_os_str());
+        vec![arg0, lp_file.into()]
+    }
+
+    fn preferred_temp_solution_file(&self) -> Option<&Path> {
+        self.temp_solution_file.as_deref()
+    }
+
+    fn parse_stdout_status(&self, stdout: &[u8]) -> Option<Status> {
+        if buf_contains(stdout, "Optimal solution found") {
+            Some(Status::Optimal)
+        } else if buf_contains(stdout, "infeasible") {
+            Some(Status::Infeasible)
+        } else {
+            None
+        }
+    }
+}
+
+fn buf_contains(haystack: &[u8], needle: &str) -> bool {
+    let needle = needle.as_bytes();
+    haystack.windows(needle.len()).any(|window| window == needle)
 }
