@@ -27,15 +27,13 @@ fn simple_problem() {
                 is_integer: false,
                 lower_bound: 1.,
                 upper_bound: 10.,
-            }
+            },
         ],
-        constraints: vec![
-            Constraint {
-                lhs: StrExpression("x + y + z".to_string()),
-                operator: Ordering::Greater,
-                rhs: 5.0,
-            }
-        ],
+        constraints: vec![Constraint {
+            lhs: StrExpression("x + y + z".to_string()),
+            operator: Ordering::Greater,
+            rhs: 5.0,
+        }],
     };
     let expected_str = "\\ my_problem
 
@@ -54,7 +52,6 @@ End
 ";
     assert_eq!(pb.display_lp().to_string(), expected_str);
 }
-
 
 #[test]
 fn with_integers() {
@@ -76,13 +73,11 @@ fn with_integers() {
                 upper_bound: 16.5,
             },
         ],
-        constraints: vec![
-            Constraint {
-                lhs: StrExpression("x - y".to_string()),
-                operator: Ordering::Less,
-                rhs: -5.0,
-            }
-        ],
+        constraints: vec![Constraint {
+            lhs: StrExpression("x - y".to_string()),
+            operator: Ordering::Less,
+            rhs: -5.0,
+        }],
     };
     let expected_str = "\\ int_problem
 

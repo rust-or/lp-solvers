@@ -5,7 +5,9 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use crate::format::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads};
+use crate::solvers::{
+    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads,
+};
 
 #[derive(Debug, Clone)]
 pub struct CbcSolver {
@@ -145,17 +147,15 @@ impl SolverProgram for CbcSolver {
         for (name, value) in [
             ("seconds", self.max_seconds()),
             ("threads", self.nb_threads()),
-        ].iter() {
+        ]
+        .iter()
+        {
             if let Some(val) = value {
                 args.push(name.into());
                 args.push(val.to_string().into());
             }
         }
-        args.extend_from_slice(&[
-            "solve".into(),
-            "solution".into(),
-            solution_file.into(),
-        ]);
+        args.extend_from_slice(&["solve".into(), "solution".into(), solution_file.into()]);
         args
     }
 

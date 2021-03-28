@@ -103,5 +103,7 @@ impl SolverProgram for GurobiSolver {
 
 fn buf_contains(haystack: &[u8], needle: &str) -> bool {
     let needle = needle.as_bytes();
-    haystack.windows(needle.len()).any(|window| window == needle)
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
 }

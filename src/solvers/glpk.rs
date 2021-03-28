@@ -116,10 +116,12 @@ impl SolverProgram for GlpkSolver {
     }
 
     fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
-        vec!["--lp".into(),
-             lp_file.into(),
-             "-o".into(),
-             solution_file.into()]
+        vec![
+            "--lp".into(),
+            lp_file.into(),
+            "-o".into(),
+            solution_file.into(),
+        ]
     }
 
     fn preferred_temp_solution_file(&self) -> Option<&Path> {

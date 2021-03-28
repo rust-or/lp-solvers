@@ -73,8 +73,12 @@ pub trait SolverProgram {
     /// Returns the commandline arguments
     fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString>;
     /// If there is a predefined solution filename
-    fn preferred_temp_solution_file(&self) -> Option<&Path> { None }
-    fn parse_stdout_status(&self, _stdout: &[u8]) -> Option<Status> { None }
+    fn preferred_temp_solution_file(&self) -> Option<&Path> {
+        None
+    }
+    fn parse_stdout_status(&self, _stdout: &[u8]) -> Option<Status> {
+        None
+    }
 }
 
 pub trait SolverWithSolutionParsing {
@@ -126,7 +130,10 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
             .output()
             .map_err(|e| format!("Error while running {}: {}", command_name, e))?;
         if !output.status.success() {
-            return Err(format!("{} exited with status {}", command_name, output.status));
+            return Err(format!(
+                "{} exited with status {}",
+                command_name, output.status
+            ));
         }
         self.read_solution_from_path(temp_solution_file, Some(problem))
     }
