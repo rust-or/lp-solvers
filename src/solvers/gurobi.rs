@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
-use crate::format::lp_format::*;
+use crate::lp_format::*;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
 #[derive(Debug, Clone)]

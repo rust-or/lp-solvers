@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use lp_solvers::format::lp_format::{Constraint, LpObjective, LpProblem};
+use lp_solvers::lp_format::{Constraint, LpObjective, LpProblem};
 use lp_solvers::problem::{Problem, StrExpression, Variable};
 
 #[test]

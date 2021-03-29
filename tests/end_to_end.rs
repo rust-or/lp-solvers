@@ -1,10 +1,10 @@
 use std::cmp::Ordering;
 use std::collections::HashMap;
 
-use lp_solvers::format::lp_format::{Constraint, LpObjective};
+use lp_solvers::lp_format::{Constraint, LpObjective};
 use lp_solvers::problem::{Problem, StrExpression, Variable};
-use lp_solvers::solvers::{CbcSolver, SolverTrait};
 use lp_solvers::solvers::Status::Optimal;
+use lp_solvers::solvers::{CbcSolver, SolverTrait};
 
 #[test]
 fn solve_integer_problem_with_cbc() {
@@ -34,9 +34,9 @@ fn solve_integer_problem_with_cbc() {
     };
     let solution = CbcSolver::new().run(&pb).expect("Failed to run cbc");
     assert_eq!(solution.status, Optimal);
-    let expected_results: HashMap<String, f32> = vec![
-        ("x".to_string(), -1.),
-        ("y".to_string(), 4.),
-    ].into_iter().collect();
+    let expected_results: HashMap<String, f32> =
+        vec![("x".to_string(), -1.), ("y".to_string(), 4.)]
+            .into_iter()
+            .collect();
     assert_eq!(solution.results, expected_results);
 }

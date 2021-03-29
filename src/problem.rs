@@ -1,9 +1,7 @@
 use std::fmt;
 use std::fmt::Formatter;
 
-use crate::format::lp_format::{
-    AsVariable, Constraint, LpObjective, LpProblem, WriteToLpFileFormat,
-};
+use crate::lp_format::{AsVariable, Constraint, LpObjective, LpProblem, WriteToLpFileFormat};
 
 /// A string that is a valid expression in the .lp format for the solver you are using
 pub struct StrExpression(pub String);

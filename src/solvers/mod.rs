@@ -32,7 +32,7 @@ use std::process::Command;
 
 use tempfile::NamedTempFile;
 
-use crate::format::lp_format::LpProblem;
+use crate::lp_format::LpProblem;
 
 pub use self::cbc::*;
 pub use self::glpk::*;
