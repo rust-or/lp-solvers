@@ -2,7 +2,9 @@
 
 Library implementing interaction with various linear programming solvers.
 
-It uses the [.lp file format] to interact with external solver binaries.
+It uses the [.lp file format][lp] to interact with external solver binaries.
+
+[lp]: https://www.gurobi.com/documentation/9.1/refman/lp_format.html
 
 ## Supported solvers
 
