@@ -169,12 +169,8 @@ fn write_constraints_lp_file_block<'a>(
     prob: &'a impl LpProblem<'a>,
     f: &mut std::fmt::Formatter,
 ) -> std::fmt::Result {
-    let mut wrote_header = false;
+    write!(f, "\n\nSubject To\n")?;
     for (idx, constraint) in prob.constraints().enumerate() {
-        if !wrote_header {
-            write!(f, "\n\nSubject To\n")?;
-            wrote_header = true;
-        }
         write!(f, "  c{}: ", idx)?;
         constraint.to_lp_file_format(f)?;
         writeln!(f)?;
