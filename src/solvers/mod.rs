@@ -30,8 +30,6 @@ use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use tempfile::NamedTempFile;
-
 use crate::lp_format::LpProblem;
 
 pub use self::cbc::*;
@@ -39,6 +37,8 @@ pub use self::glpk::*;
 pub use self::gurobi::*;
 
 pub mod cbc;
+#[cfg(feature = "cplex")]
+pub mod cplex;
 pub mod glpk;
 pub mod gurobi;
 
@@ -93,6 +93,10 @@ pub trait SolverProgram {
     fn parse_stdout_status(&self, _stdout: &[u8]) -> Option<Status> {
         None
     }
+    /// A suffix the solution file must have
+    fn solution_suffix(&self) -> Option<&str> {
+        None
+    }
 }
 
 /// A solver that can parse a solution file
@@ -135,24 +139,34 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
             .to_tmp_file()
             .map_err(|e| format!("Unable to create {} problem file: {}", command_name, e))?;
 
-        let named_temp;
         let temp_solution_file = if let Some(p) = self.preferred_temp_solution_file() {
-            p
+            PathBuf::from(p)
         } else {
-            named_temp = NamedTempFile::new().map_err(|e| e.to_string())?;
-            named_temp.path()
+            let mut builder = tempfile::Builder::new();
+            if let Some(suffix) = self.solution_suffix() {
+                builder.suffix(suffix);
+            }
+            PathBuf::from(builder.tempfile().map_err(|e| e.to_string())?.path())
         };
+        let arguments = self.arguments(file_model.path(), &temp_solution_file);
+
         let output = Command::new(command_name)
-            .args(self.arguments(file_model.path(), temp_solution_file))
+            .args(arguments)
             .output()
             .map_err(|e| format!("Error while running {}: {}", command_name, e))?;
+
         if !output.status.success() {
             return Err(format!(
                 "{} exited with status {}",
                 command_name, output.status
             ));
         }
-        self.read_solution_from_path(temp_solution_file, Some(problem))
+
+        let mut solution = self.read_solution_from_path(&temp_solution_file, Some(problem))?;
+        if let Some(status) = self.parse_stdout_status(&output.stdout) {
+            solution.status = status;
+        }
+        Ok(solution)
     }
 }
 
@@ -172,7 +186,6 @@ pub trait WithNbThreads<T> {
     fn with_nb_threads(&self, threads: u32) -> T;
 }
 
-
 /// A static version of a solver, where the solver itself doesn't hold any data
 ///
 /// ```
@@ -190,10 +203,7 @@ impl<T> StaticSolver<T> {
 }
 
 impl<T: SolverTrait + Default> SolverTrait for StaticSolver<T> {
-    fn run<'a, P: LpProblem<'a>>(
-        &self,
-        problem: &'a P,
-    ) -> Result<Solution, String> {
+    fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String> {
         let solver = T::default();
         SolverTrait::run(&solver, problem)
     }

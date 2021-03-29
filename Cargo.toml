@@ -1,6 +1,6 @@
 [package]
 name = "lp-solvers"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Joel Cavat <jcavat@gmail.com>", "Ophir LOJKINE"]
 description = ".lp file format implementation and external solver invocation functions such as CBC, Gurobi, lp_solve, ..."
 repository = "https://github.com/rust-or/lp-solvers"
@@ -21,5 +21,9 @@ exclude = [
     "Cargo.lock",
 ]
 
+[features]
+cplex = ["xml-rs"]
+
 [dependencies]
 tempfile = "3"
+xml-rs = { version = "0.8.3", optional = true }

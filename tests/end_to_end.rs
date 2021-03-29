@@ -8,6 +8,17 @@ use lp_solvers::solvers::{CbcSolver, SolverTrait};
 
 #[test]
 fn solve_integer_problem_with_cbc() {
+    solve_integer_problem_with_solver(CbcSolver::default())
+}
+
+#[cfg(feature = "cplex")]
+#[test]
+fn solve_integer_problem_with_cplex() {
+    use lp_solvers::solvers::cplex::Cplex;
+    solve_integer_problem_with_solver(Cplex::with_command("cplex".to_string()))
+}
+
+fn solve_integer_problem_with_solver<S: SolverTrait>(solver: S) {
     let pb = Problem {
         name: "int_problem".to_string(),
         sense: LpObjective::Maximize,
@@ -32,7 +43,7 @@ fn solve_integer_problem_with_cbc() {
             rhs: -4.5,
         }],
     };
-    let solution = CbcSolver::new().run(&pb).expect("Failed to run cbc");
+    let solution = solver.run(&pb).expect("Failed to run cbc");
     assert_eq!(solution.status, Optimal);
     let expected_results: HashMap<String, f32> =
         vec![("x".to_string(), -1.), ("y".to_string(), 4.)]

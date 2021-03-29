@@ -99,7 +99,9 @@ pub trait LpProblem<'a>: Sized {
     type VariableIterator: Iterator<Item = Self::Variable>;
 
     /// problem name. "lp_solvers_problem" by default
-    fn name(&self) -> &str { "lp_solvers_problem" }
+    fn name(&self) -> &str {
+        "lp_solvers_problem"
+    }
     /// Variables of the problem
     fn variables(&'a self) -> Self::VariableIterator;
     /// Target objective function

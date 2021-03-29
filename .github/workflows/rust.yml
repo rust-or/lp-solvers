@@ -19,7 +19,7 @@ jobs:
       run:  |
         sudo apt install coinor-cbc
     - name: Build
-      run: cargo test --no-run --verbose
+      run: cargo test --no-run --verbose --all-features
     - name: Clippy
       run: cargo clippy --all-features -- -D warnings
     - name: Run tests
