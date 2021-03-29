@@ -98,7 +98,6 @@ pub trait SolverWithSolutionParsing {
         match File::open(temp_solution_file) {
             Ok(f) => {
                 let res = self.read_specific_solution(&f, problem)?;
-                let _ = fs::remove_file(temp_solution_file);
                 Ok(res)
             }
             Err(_) => Err("Cannot open file".to_string()),
