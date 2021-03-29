@@ -26,6 +26,7 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
+use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -169,4 +170,31 @@ pub trait WithNbThreads<T> {
     fn nb_threads(&self) -> Option<u32>;
     /// set thread count
     fn with_nb_threads(&self, threads: u32) -> T;
+}
+
+
+/// A static version of a solver, where the solver itself doesn't hold any data
+///
+/// ```
+/// use lp_solvers::solvers::{StaticSolver, CbcSolver};
+/// const STATIC_SOLVER : StaticSolver<CbcSolver> = StaticSolver::new();
+/// ```
+#[derive(Default, Copy, Clone)]
+pub struct StaticSolver<T>(PhantomData<T>);
+
+impl<T> StaticSolver<T> {
+    /// Create a new static solver
+    pub const fn new() -> Self {
+        StaticSolver(PhantomData)
+    }
+}
+
+impl<T: SolverTrait + Default> SolverTrait for StaticSolver<T> {
+    fn run<'a, P: LpProblem<'a>>(
+        &self,
+        problem: &'a P,
+    ) -> Result<Solution, String> {
+        let solver = T::default();
+        SolverTrait::run(&solver, problem)
+    }
 }
