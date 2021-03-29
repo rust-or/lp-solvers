@@ -100,22 +100,19 @@ End
     assert_eq!(pb.display_lp().to_string(), expected_str);
 }
 
-
 #[test]
 fn without_constraints() {
     let pb = Problem {
         name: "int_problem".to_string(),
         sense: LpObjective::Maximize,
         objective: StrExpression("x".to_string()),
-        variables: vec![
-            Variable {
-                name: "x".to_string(),
-                is_integer: true,
-                lower_bound: 0.,
-                upper_bound: 2.5,
-            }
-        ],
-        constraints: vec![]
+        variables: vec![Variable {
+            name: "x".to_string(),
+            is_integer: true,
+            lower_bound: 0.,
+            upper_bound: 2.5,
+        }],
+        constraints: vec![],
     };
     let expected_str = "\\ int_problem
 

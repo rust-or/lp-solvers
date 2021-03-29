@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
+use crate::util::buf_contains;
 
 /// The proprietary gurobi solver
 #[derive(Debug, Clone)]
@@ -104,11 +105,4 @@ impl SolverProgram for GurobiSolver {
             None
         }
     }
-}
-
-fn buf_contains(haystack: &[u8], needle: &str) -> bool {
-    let needle = needle.as_bytes();
-    haystack
-        .windows(needle.len())
-        .any(|window| window == needle)
 }

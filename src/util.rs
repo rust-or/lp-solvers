@@ -52,3 +52,10 @@ fn calculate_hash(t: &str) -> u64 {
     t.hash(&mut s);
     s.finish()
 }
+
+pub(crate) fn buf_contains(haystack: &[u8], needle: &str) -> bool {
+    let needle = needle.as_bytes();
+    haystack
+        .windows(needle.len())
+        .any(|window| window == needle)
+}

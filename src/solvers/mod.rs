@@ -121,7 +121,10 @@ pub trait SolverWithSolutionParsing {
                 let res = self.read_specific_solution(&f, problem)?;
                 Ok(res)
             }
-            Err(e) => Err(format!("Cannot open solution file {:?}: {}", temp_solution_file, e)),
+            Err(e) => Err(format!(
+                "Cannot open solution file {:?}: {}",
+                temp_solution_file, e
+            )),
         }
     }
     /// Read a solution from a file
@@ -161,13 +164,29 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
                 command_name, output.status
             ));
         }
-
-        let mut solution = self.read_solution_from_path(&temp_solution_file, Some(problem))
-            .map_err(|e| format!("{}. Solver output: {}", e, std::str::from_utf8(&output.stdout).unwrap_or("Invalid UTF8")))?;
-        if let Some(status) = self.parse_stdout_status(&output.stdout) {
-            solution.status = status;
+        match self.parse_stdout_status(&output.stdout) {
+            Some(Status::Infeasible) => {
+                return Ok(Solution::new(Status::Infeasible, Default::default()))
+            }
+            Some(Status::Unbounded) => {
+                return Ok(Solution::new(Status::Unbounded, Default::default()))
+            }
+            status_hint => {
+                let mut solution = self
+                    .read_solution_from_path(&temp_solution_file, Some(problem))
+                    .map_err(|e| {
+                        format!(
+                            "{}. Solver output: {}",
+                            e,
+                            std::str::from_utf8(&output.stdout).unwrap_or("Invalid UTF8")
+                        )
+                    })?;
+                if let Some(status) = status_hint {
+                    solution.status = status;
+                }
+                Ok(solution)
+            }
         }
-        Ok(solution)
     }
 }
 

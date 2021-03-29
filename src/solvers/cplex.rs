@@ -10,6 +10,7 @@ use xml::EventReader;
 
 use crate::lp_format::LpProblem;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
+use crate::util::buf_contains;
 
 /// IBM cplex optimizer
 #[derive(Debug, Clone)]
@@ -52,6 +53,14 @@ impl SolverProgram for Cplex {
             "optimize".into(),
             format_osstr!("WRITE \"" solution_file "\""),
         ]
+    }
+
+    fn parse_stdout_status(&self, stdout: &[u8]) -> Option<Status> {
+        if buf_contains(stdout, "No solution exists") {
+            Some(Status::Infeasible)
+        } else {
+            None
+        }
     }
 
     fn solution_suffix(&self) -> Option<&str> {
