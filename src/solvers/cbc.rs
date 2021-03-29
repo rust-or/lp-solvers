@@ -1,3 +1,5 @@
+//! The coin-or cbc solver.
+//! [https://github.com/coin-or/Cbc#cbc]
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
@@ -9,6 +11,7 @@ use crate::solvers::{
     Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads,
 };
 
+/// The coin-or cbc solver
 #[derive(Debug, Clone)]
 pub struct CbcSolver {
     name: String,
@@ -25,6 +28,7 @@ impl Default for CbcSolver {
 }
 
 impl CbcSolver {
+    /// Crate a cbc solver instance
     pub fn new() -> CbcSolver {
         CbcSolver {
             name: "Cbc".to_string(),
@@ -35,6 +39,7 @@ impl CbcSolver {
         }
     }
 
+    /// set the name of the executable to use
     pub fn command_name(&self, command_name: String) -> CbcSolver {
         CbcSolver {
             name: self.name.clone(),
@@ -45,6 +50,7 @@ impl CbcSolver {
         }
     }
 
+    /// Set the temporary solution file to use
     pub fn with_temp_solution_file(&self, temp_solution_file: String) -> CbcSolver {
         CbcSolver {
             name: self.name.clone(),

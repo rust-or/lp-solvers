@@ -1,3 +1,6 @@
+//! GNU's glpk solver
+//! [https://www.gnu.org/software/glpk/]
+//!
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
@@ -7,6 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::lp_format::*;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
+/// glpk solver
 #[derive(Debug, Clone)]
 pub struct GlpkSolver {
     name: String,
@@ -21,6 +25,7 @@ impl Default for GlpkSolver {
 }
 
 impl GlpkSolver {
+    /// New glpk solver instance
     pub fn new() -> GlpkSolver {
         GlpkSolver {
             name: "Glpk".to_string(),
@@ -28,6 +33,7 @@ impl GlpkSolver {
             temp_solution_file: None,
         }
     }
+    /// Set the glpk command name
     pub fn command_name(&self, command_name: String) -> GlpkSolver {
         GlpkSolver {
             name: self.name.clone(),
@@ -35,6 +41,7 @@ impl GlpkSolver {
             temp_solution_file: self.temp_solution_file.clone(),
         }
     }
+    /// Set the temporary solution file to use
     pub fn with_temp_solution_file(&self, temp_solution_file: String) -> GlpkSolver {
         GlpkSolver {
             name: self.name.clone(),
@@ -126,6 +133,6 @@ impl SolverProgram for GlpkSolver {
     }
 
     fn preferred_temp_solution_file(&self) -> Option<&Path> {
-        unimplemented!()
+        self.temp_solution_file.as_deref()
     }
 }

@@ -1,3 +1,5 @@
+//! Traits to be implemented by structures that can be dumped in the .lp format
+//!
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
@@ -6,9 +8,12 @@ use std::io::Result;
 
 use tempfile::NamedTempFile;
 
+/// Optimization sense
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub enum LpObjective {
+    /// min
     Minimize,
+    /// max
     Maximize,
 }
 
@@ -16,6 +21,7 @@ pub enum LpObjective {
 /// that the variable names used by types implementing this trait
 /// follow the solver's requirements.
 pub trait WriteToLpFileFormat {
+    /// Write the object to the given formatter in the .lp format
     fn to_lp_file_format(&self, f: &mut fmt::Formatter) -> fmt::Result;
 }
 
@@ -25,11 +31,15 @@ impl<'a, T: WriteToLpFileFormat> WriteToLpFileFormat for &'a T {
     }
 }
 
-/// A type that represents a variable. See [problem::Variable].
+/// A type that represents a variable. See [crate::problem::Variable].
 pub trait AsVariable {
+    /// Variable name. Needs to be unique. See [crate::util::UniqueNameGenerator]
     fn name(&self) -> &str;
+    /// Whether the variable is forced to take only integer values
     fn is_integer(&self) -> bool;
+    /// Minimum allowed value for the variable
     fn lower_bound(&self) -> f64;
+    /// Maximum allowed value for the variable
     fn upper_bound(&self) -> f64;
 }
 
@@ -53,8 +63,11 @@ impl<'a, T: AsVariable> AsVariable for &'a T {
 
 /// A constraint expressing a relation between two expressions
 pub struct Constraint<E> {
+    /// left hand side of the constraint
     pub lhs: E,
+    /// '<=' '=' or '>='
     pub operator: Ordering,
+    /// Right-hand side of the constraint
     pub rhs: f64,
 }
 
@@ -74,17 +87,28 @@ impl<E: WriteToLpFileFormat> WriteToLpFileFormat for Constraint<E> {
     }
 }
 
+/// Implemented by type that can be formatted as an lp problem
 pub trait LpProblem<'a>: Sized {
+    /// variable type
     type Variable: AsVariable;
+    /// expression type
     type Expression: WriteToLpFileFormat;
+    /// Iterator over constraints
     type ConstraintIterator: Iterator<Item = Constraint<Self::Expression>>;
+    /// Iterator over variables
     type VariableIterator: Iterator<Item = Self::Variable>;
 
-    fn name(&self) -> &str;
+    /// problem name. "lp_solvers_problem" by default
+    fn name(&self) -> &str { "lp_solvers_problem" }
+    /// Variables of the problem
     fn variables(&'a self) -> Self::VariableIterator;
+    /// Target objective function
     fn objective(&'a self) -> Self::Expression;
+    /// Whether to maximize or minimize the objective
     fn sense(&'a self) -> LpObjective;
+    /// List of constraints to apply
     fn constraints(&'a self) -> Self::ConstraintIterator;
+    /// Write the problem in the lp file format to the given formatter
     fn to_lp_file_format(&'a self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "\\ {}\n\n", self.name())?;
         objective_lp_file_block(self, f)?;
@@ -93,12 +117,15 @@ pub trait LpProblem<'a>: Sized {
         write!(f, "\nEnd\n")?;
         Ok(())
     }
+    /// Return an object whose [fmt::Display] implementation is the problem in the .lp format
     fn display_lp(&'a self) -> DisplayedLp<'_, Self>
     where
         Self: Sized,
     {
         DisplayedLp(&self)
     }
+
+    /// Write the problem to a temporary file
     fn to_tmp_file(&'a self) -> Result<NamedTempFile>
     where
         Self: Sized,

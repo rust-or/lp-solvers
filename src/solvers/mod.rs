@@ -25,7 +25,6 @@
 
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::fs;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -42,31 +41,44 @@ pub mod cbc;
 pub mod glpk;
 pub mod gurobi;
 
+/// Solution status
 #[derive(Debug, PartialEq, Clone)]
 pub enum Status {
+    /// the best possible solution was found
     Optimal,
+    /// A solution was found; it may not be the best one.
     SubOptimal,
+    /// There is no solution for the problem
     Infeasible,
+    /// There is no single finite optimum for the problem
     Unbounded,
+    /// Unable to solve
     NotSolved,
 }
 
+/// A solution to a problem
 #[derive(Debug, Clone)]
 pub struct Solution {
+    /// solution state
     pub status: Status,
+    /// map from variable name to variable value
     pub results: HashMap<String, f32>,
 }
 
 impl Solution {
+    /// Create a solution
     pub fn new(status: Status, results: HashMap<String, f32>) -> Solution {
         Solution { status, results }
     }
 }
 
+/// A solver that can take a problem and return a solution
 pub trait SolverTrait {
+    /// Run the solver on the given problem
     fn run<'a, P: LpProblem<'a>>(&self, problem: &'a P) -> Result<Solution, String>;
 }
 
+/// An external commandline solver
 pub trait SolverProgram {
     /// Returns the commandline program name
     fn command_name(&self) -> &str;
@@ -76,12 +88,15 @@ pub trait SolverProgram {
     fn preferred_temp_solution_file(&self) -> Option<&Path> {
         None
     }
+    /// Parse the output of the program
     fn parse_stdout_status(&self, _stdout: &[u8]) -> Option<Status> {
         None
     }
 }
 
+/// A solver that can parse a solution file
 pub trait SolverWithSolutionParsing {
+    /// Use read_solution_from_path instead.
     #[deprecated]
     fn read_solution<'a, P: LpProblem<'a>>(
         &self,
@@ -90,6 +105,7 @@ pub trait SolverWithSolutionParsing {
     ) -> Result<Solution, String> {
         Self::read_solution_from_path(self, &PathBuf::from(temp_solution_file), problem)
     }
+    /// Read a solution
     fn read_solution_from_path<'a, P: LpProblem<'a>>(
         &self,
         temp_solution_file: &Path,
@@ -103,6 +119,7 @@ pub trait SolverWithSolutionParsing {
             Err(_) => Err("Cannot open file".to_string()),
         }
     }
+    /// Read a solution from a file
     fn read_specific_solution<'a, P: LpProblem<'a>>(
         &self,
         f: &File,
@@ -137,12 +154,19 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
         self.read_solution_from_path(temp_solution_file, Some(problem))
     }
 }
+
+/// Configure the max allowed runtime
 pub trait WithMaxSeconds<T> {
+    /// get max runtime
     fn max_seconds(&self) -> Option<u32>;
+    /// set max runtime
     fn with_max_seconds(&self, seconds: u32) -> T;
 }
 
+/// A solver where the parallelism can be configured
 pub trait WithNbThreads<T> {
+    /// get thread count
     fn nb_threads(&self) -> Option<u32>;
+    /// set thread count
     fn with_nb_threads(&self, threads: u32) -> T;
 }

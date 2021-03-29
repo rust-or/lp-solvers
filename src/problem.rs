@@ -1,3 +1,4 @@
+//! Concrete implementations for the traits in [crate::lp_format]
 use std::fmt;
 use std::fmt::Formatter;
 
@@ -10,6 +11,7 @@ pub struct StrExpression(pub String);
 pub struct Variable {
     /// The variable name should be unique in the problem and have a name accepted by the solver
     pub name: String,
+    /// Whether the variable is restricted to only integer values
     pub is_integer: bool,
     /// -INFINITY if there is no lower bound
     pub lower_bound: f64,
@@ -41,11 +43,18 @@ impl AsVariable for Variable {
     }
 }
 
+/// A concrete linear problem
 pub struct Problem<EXPR = StrExpression, VAR = Variable> {
+    /// problem name. "lp_solvers_problem" by default
+    /// Write the problem in the lp file format to the given formatter
     pub name: String,
+    /// Whether to maximize or minimize the objective
     pub sense: LpObjective,
+    /// Target objective function
     pub objective: EXPR,
+    /// Variables of the problem
     pub variables: Vec<VAR>,
+    /// List of constraints to apply
     pub constraints: Vec<Constraint<EXPR>>,
 }
 

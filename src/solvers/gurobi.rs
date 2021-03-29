@@ -1,3 +1,4 @@
+//! The proprietary gurobi solver
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::fs::File;
@@ -7,6 +8,7 @@ use std::path::{Path, PathBuf};
 use crate::lp_format::*;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
+/// The proprietary gurobi solver
 #[derive(Debug, Clone)]
 pub struct GurobiSolver {
     name: String,
@@ -21,6 +23,7 @@ impl Default for GurobiSolver {
 }
 
 impl GurobiSolver {
+    /// create a solver instance
     pub fn new() -> GurobiSolver {
         GurobiSolver {
             name: "Gurobi".to_string(),
@@ -28,6 +31,7 @@ impl GurobiSolver {
             temp_solution_file: None,
         }
     }
+    /// set the name of the commandline gurobi executable to use
     pub fn command_name(&self, command_name: String) -> GurobiSolver {
         GurobiSolver {
             name: self.name.clone(),
