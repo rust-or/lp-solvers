@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use crate::format::lp_format::*;
 use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
 
+#[derive(Debug, Clone)]
 pub struct GlpkSolver {
     name: String,
     command_name: String,
