@@ -9,9 +9,10 @@ It uses the [.lp file format][lp] to interact with external solver binaries.
 ## Supported solvers
 
  - [gurobi](https://www.gurobi.com/)
- - [cplex](https://www.ibm.com/analytics/cplex-optimizer)
+ - [cplex](https://www.ibm.com/analytics/cplex-optimizer) (with the `cplex` feature)
  - [cbc](https://www.coin-or.org/Cbc/)
  - [glpk](https://www.gnu.org/software/glpk/)
+ - **auto**: automatically finds which of the above solver is installed at runtime, and uses it.
 
 You need to have the solver you want to use installed on your machine already for this library to work.
 

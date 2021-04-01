@@ -1,8 +1,8 @@
 [package]
 name = "lp-solvers"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Joel Cavat <jcavat@gmail.com>", "Ophir LOJKINE"]
-description = ".lp file format implementation and external solver invocation functions such as CBC, Gurobi, lp_solve, ..."
+description = ".lp file format implementation and external solver invocation for Cbc, Gurobi, cplex, and GLPK"
 repository = "https://github.com/rust-or/lp-solvers"
 readme = "README.md"
 license = "MIT"

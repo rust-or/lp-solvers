@@ -1,4 +1,5 @@
-//! The IBM CPLEX optimizer
+//! The IBM CPLEX optimizer.
+//! You need to activate the "cplex" feature of this crate to use this solver.
 
 use std::collections::HashMap;
 use std::ffi::OsString;

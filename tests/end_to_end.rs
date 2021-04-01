@@ -4,11 +4,18 @@ use std::collections::HashMap;
 use lp_solvers::lp_format::{Constraint, LpObjective};
 use lp_solvers::problem::{Problem, StrExpression, Variable};
 use lp_solvers::solvers::Status::{Infeasible, Optimal};
-use lp_solvers::solvers::{CbcSolver, SolverTrait};
+use lp_solvers::solvers::{AllSolvers, CbcSolver, SolverTrait};
 
 #[test]
 fn solve_integer_problem_with_cbc() {
     let solver = CbcSolver::default();
+    solve_integer_problem_with_solver(&solver);
+    infeasible(&solver);
+}
+
+#[test]
+fn solve_integer_problem_with_auto_solver() {
+    let solver = AllSolvers::new();
     solve_integer_problem_with_solver(&solver);
     infeasible(&solver);
 }

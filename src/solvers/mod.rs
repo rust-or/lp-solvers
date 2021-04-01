@@ -32,10 +32,14 @@ use std::process::Command;
 
 use crate::lp_format::LpProblem;
 
+pub use self::auto::*;
 pub use self::cbc::*;
+#[cfg(feature = "cplex")]
+pub use self::cplex::*;
 pub use self::glpk::*;
 pub use self::gurobi::*;
 
+pub mod auto;
 pub mod cbc;
 #[cfg(feature = "cplex")]
 pub mod cplex;
@@ -165,12 +169,8 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
             ));
         }
         match self.parse_stdout_status(&output.stdout) {
-            Some(Status::Infeasible) => {
-                return Ok(Solution::new(Status::Infeasible, Default::default()))
-            }
-            Some(Status::Unbounded) => {
-                return Ok(Solution::new(Status::Unbounded, Default::default()))
-            }
+            Some(Status::Infeasible) => Ok(Solution::new(Status::Infeasible, Default::default())),
+            Some(Status::Unbounded) => Ok(Solution::new(Status::Unbounded, Default::default())),
             status_hint => {
                 let mut solution = self
                     .read_solution_from_path(&temp_solution_file, Some(problem))
