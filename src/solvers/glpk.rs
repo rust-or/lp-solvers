@@ -155,6 +155,7 @@ impl SolverProgram for GlpkSolver {
                 args.push(val.to_string().into());
             }
         }
+
         args
     }
 
