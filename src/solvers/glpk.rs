@@ -8,7 +8,7 @@ use std::io::{BufRead, BufReader, Error};
 use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
+use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds};
 
 /// glpk solver
 #[derive(Debug, Clone)]
@@ -16,6 +16,7 @@ pub struct GlpkSolver {
     name: String,
     command_name: String,
     temp_solution_file: Option<PathBuf>,
+    seconds: Option<u32>,
 }
 
 impl Default for GlpkSolver {
@@ -31,6 +32,7 @@ impl GlpkSolver {
             name: "Glpk".to_string(),
             command_name: "glpsol".to_string(),
             temp_solution_file: None,
+            seconds: None,
         }
     }
     /// Set the glpk command name
@@ -39,6 +41,7 @@ impl GlpkSolver {
             name: self.name.clone(),
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
+            seconds: self.seconds,
         }
     }
     /// Set the temporary solution file to use
@@ -47,6 +50,7 @@ impl GlpkSolver {
             name: self.name.clone(),
             command_name: self.command_name.clone(),
             temp_solution_file: Some(temp_solution_file.into()),
+            seconds: self.seconds,
         }
     }
 }
@@ -85,6 +89,7 @@ impl SolverWithSolutionParsing for GlpkSolver {
         let status = match iter.nth(1) {
             Some(Ok(status_line)) => match &status_line[12..] {
                 "INTEGER OPTIMAL" | "OPTIMAL" => Status::Optimal,
+                "INTEGER NON-OPTIMAL" | "FEASIBLE" => Status::SubOptimal,
                 "INFEASIBLE (FINAL)" | "INTEGER EMPTY" => Status::Infeasible,
                 "UNDEFINED" => Status::NotSolved,
                 "INTEGER UNDEFINED" | "UNBOUNDED" => Status::Unbounded,
@@ -118,18 +123,40 @@ impl SolverWithSolutionParsing for GlpkSolver {
     }
 }
 
+impl WithMaxSeconds<GlpkSolver> for GlpkSolver {
+    fn max_seconds(&self) -> Option<u32> {
+        self.seconds
+    }
+
+    fn with_max_seconds(&self, seconds: u32) -> GlpkSolver {
+        GlpkSolver {
+            seconds: Some(seconds),
+            ..(*self).clone()
+        }
+    }
+}
+
 impl SolverProgram for GlpkSolver {
     fn command_name(&self) -> &str {
         &self.command_name
     }
 
     fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
-        vec![
+        let mut args = vec![
             "--lp".into(),
             lp_file.into(),
             "-o".into(),
             solution_file.into(),
-        ]
+        ];
+
+        for (name, value) in [("--tmlim", self.max_seconds())].iter() {
+            if let Some(val) = value {
+                args.push(name.into());
+                args.push(val.to_string().into());
+            }
+        }
+
+        args
     }
 
     fn preferred_temp_solution_file(&self) -> Option<&Path> {
