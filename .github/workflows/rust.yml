@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest    
     steps:
     - uses: actions/checkout@v2
+    - uses: Swatinem/rust-cache@v2
     - name: install dependencies
       run:  |
         sudo apt install coinor-cbc
@@ -30,6 +31,7 @@ jobs:
     runs-on: windows-latest    
     steps:
     - uses: actions/checkout@v2
+    - uses: Swatinem/rust-cache@v2
     - name: install dependencies
       run:  |
         mkdir C:\Cbc
