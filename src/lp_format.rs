@@ -124,7 +124,7 @@ pub trait LpProblem<'a>: Sized {
     where
         Self: Sized,
     {
-        DisplayedLp(&self)
+        DisplayedLp(self)
     }
 
     /// Write the problem to a temporary file

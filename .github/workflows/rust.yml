@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest    
     steps:
     - uses: actions/checkout@v2
+    - uses: Swatinem/rust-cache@v2
     - name: install dependencies
       run:  |
         sudo apt install coinor-cbc
@@ -30,12 +31,13 @@ jobs:
     runs-on: windows-latest    
     steps:
     - uses: actions/checkout@v2
+    - uses: Swatinem/rust-cache@v2
     - name: install dependencies
       run:  |
         mkdir C:\Cbc
-        curl https://ampl.com/dl/open/cbc/cbc-win64.zip --output Cbc-2.9.zip
-        7z x "Cbc-2.9.zip" -o"Cbc"
-        $SUB= '' + (Get-Location) + '\Cbc'
+        curl https://www.coin-or.org/download/binary/Cbc/Cbc-2.10-win64-msvc16-mdd.zip --output Cbc-2.10.zip
+        7z x "Cbc-2.10.zip" -o"Cbc"
+        $SUB= '' + (Get-Location) + '\Cbc\bin'
         echo $SUB
         echo $SUB | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
     - name: Build
