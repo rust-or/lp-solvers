@@ -41,7 +41,7 @@ impl GlpkSolver {
             name: self.name.clone(),
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
-            seconds: None,
+            seconds: self.seconds,
         }
     }
     /// Set the temporary solution file to use
@@ -50,7 +50,7 @@ impl GlpkSolver {
             name: self.name.clone(),
             command_name: self.command_name.clone(),
             temp_solution_file: Some(temp_solution_file.into()),
-            seconds: None,
+            seconds: self.seconds,
         }
     }
 }
