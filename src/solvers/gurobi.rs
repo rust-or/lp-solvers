@@ -6,7 +6,7 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status};
+use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMipGap};
 use crate::util::buf_contains;
 
 /// The proprietary gurobi solver
@@ -15,6 +15,7 @@ pub struct GurobiSolver {
     name: String,
     command_name: String,
     temp_solution_file: Option<PathBuf>,
+    mipgap: Option<f32>,
 }
 
 impl Default for GurobiSolver {
@@ -30,6 +31,7 @@ impl GurobiSolver {
             name: "Gurobi".to_string(),
             command_name: "gurobi_cl".to_string(),
             temp_solution_file: None,
+            mipgap: None,
         }
     }
     /// set the name of the commandline gurobi executable to use
@@ -38,6 +40,7 @@ impl GurobiSolver {
             name: self.name.clone(),
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
+            mipgap: self.mipgap,
         }
     }
 }
@@ -81,6 +84,23 @@ impl SolverWithSolutionParsing for GurobiSolver {
     }
 }
 
+impl WithMipGap<GurobiSolver> for GurobiSolver {
+    fn mip_gap(&self) -> Option<f32> {
+        self.mipgap
+    }
+
+    fn with_mip_gap(&self, mipgap: f32) -> Result<GurobiSolver, String> {
+        if mipgap >= 0.0 {
+            Ok(GurobiSolver {
+                mipgap: Some(mipgap),
+                ..(*self).clone()
+            })
+        } else {
+            Err("Invalid MIP gap: must be >= 0".to_string())
+        }
+    }
+}
+
 impl SolverProgram for GurobiSolver {
     fn command_name(&self) -> &str {
         &self.command_name
@@ -89,7 +109,18 @@ impl SolverProgram for GurobiSolver {
     fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
         let mut arg0: OsString = "ResultFile=".into();
         arg0.push(solution_file.as_os_str());
-        vec![arg0, lp_file.into()]
+
+        let mut args = vec![arg0];
+
+        if let Some(mipgap) = self.mip_gap() {
+            let mut arg_mipgap: OsString = "MIPGap=".into();
+            arg_mipgap.push::<OsString>(mipgap.to_string().into());
+            args.push(arg_mipgap);
+        }
+
+        args.push(lp_file.into());
+
+        args
     }
 
     fn preferred_temp_solution_file(&self) -> Option<&Path> {
