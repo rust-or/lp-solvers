@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
 use crate::solvers::{
-    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithNbThreads,
+    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithMipGap,
+    WithNbThreads,
 };
 
 /// The coin-or cbc solver
@@ -19,6 +20,7 @@ pub struct CbcSolver {
     temp_solution_file: Option<PathBuf>,
     threads: Option<u32>,
     seconds: Option<u32>,
+    mipgap: Option<f32>,
 }
 
 impl Default for CbcSolver {
@@ -36,6 +38,7 @@ impl CbcSolver {
             temp_solution_file: None,
             threads: None,
             seconds: None,
+            mipgap: None,
         }
     }
 
@@ -47,6 +50,7 @@ impl CbcSolver {
             temp_solution_file: self.temp_solution_file.clone(),
             threads: None,
             seconds: None,
+            mipgap: self.mipgap,
         }
     }
 
@@ -58,6 +62,7 @@ impl CbcSolver {
             temp_solution_file: Some(temp_solution_file.into()),
             threads: None,
             seconds: None,
+            mipgap: self.mipgap,
         }
     }
 }
@@ -82,9 +87,21 @@ impl SolverWithSolutionParsing for CbcSolver {
         let mut buffer = String::new();
         let _ = file.read_line(&mut buffer);
 
-        let status = if let Some(status) = buffer.split_whitespace().next() {
+        let mut buffer_split = buffer.split_whitespace();
+
+        let status = if let Some(status) = buffer_split.next() {
             match status {
-                "Optimal" => Status::Optimal,
+                "Optimal" => {
+                    if let Some(substatus) = buffer_split.next() {
+                        match substatus {
+                            // MIP gap stops are "Optimal (within gap tolerance)"
+                            "(within" => Status::SubOptimal,
+                            _ => Status::Optimal,
+                        }
+                    } else {
+                        Status::Optimal
+                    }
+                }
                 // Infeasible status is either "Infeasible" or "Integer infeasible"
                 "Infeasible" | "Integer" => Status::Infeasible,
                 "Unbounded" => Status::Unbounded,
@@ -127,6 +144,24 @@ impl WithMaxSeconds<CbcSolver> for CbcSolver {
         }
     }
 }
+
+impl WithMipGap<CbcSolver> for CbcSolver {
+    fn mip_gap(&self) -> Option<f32> {
+        self.mipgap
+    }
+
+    fn with_mip_gap(&self, mipgap: f32) -> Result<CbcSolver, String> {
+        if mipgap >= 0.0 {
+            Ok(CbcSolver {
+                mipgap: Some(mipgap),
+                ..(*self).clone()
+            })
+        } else {
+            Err("Invalid MIP gap: must be >= 0".to_string())
+        }
+    }
+}
+
 impl WithNbThreads<CbcSolver> for CbcSolver {
     fn nb_threads(&self) -> Option<u32> {
         self.threads
@@ -146,9 +181,9 @@ impl SolverProgram for CbcSolver {
 
     fn arguments(&self, lp_file: &Path, solution_file: &Path) -> Vec<OsString> {
         let mut args = vec![lp_file.as_os_str().to_owned()];
-        if let Some(s) = self.max_seconds() {
-            args.push("seconds".into());
-            args.push(s.to_string().into());
+        if let Some(mipgap) = self.mip_gap() {
+            args.push("ratiogap".into());
+            args.push(mipgap.to_string().into());
         }
         for (name, value) in [
             ("seconds", self.max_seconds()),
