@@ -48,8 +48,8 @@ impl CbcSolver {
             name: self.name.clone(),
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
-            threads: None,
-            seconds: None,
+            threads: self.threads,
+            seconds: self.seconds,
             mipgap: self.mipgap,
         }
     }
@@ -60,8 +60,8 @@ impl CbcSolver {
             name: self.name.clone(),
             command_name: self.command_name.clone(),
             temp_solution_file: Some(temp_solution_file.into()),
-            threads: None,
-            seconds: None,
+            threads: self.threads,
+            seconds: self.seconds,
             mipgap: self.mipgap,
         }
     }
