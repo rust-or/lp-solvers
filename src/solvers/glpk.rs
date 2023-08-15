@@ -8,7 +8,9 @@ use std::io::{BufRead, BufReader, Error};
 use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds};
+use crate::solvers::{
+    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithMipGap,
+};
 
 /// glpk solver
 #[derive(Debug, Clone)]
@@ -17,6 +19,7 @@ pub struct GlpkSolver {
     command_name: String,
     temp_solution_file: Option<PathBuf>,
     seconds: Option<u32>,
+    mipgap: Option<f32>,
 }
 
 impl Default for GlpkSolver {
@@ -33,6 +36,7 @@ impl GlpkSolver {
             command_name: "glpsol".to_string(),
             temp_solution_file: None,
             seconds: None,
+            mipgap: None,
         }
     }
     /// Set the glpk command name
@@ -42,6 +46,7 @@ impl GlpkSolver {
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
             seconds: self.seconds,
+            mipgap: self.mipgap,
         }
     }
     /// Set the temporary solution file to use
@@ -51,6 +56,7 @@ impl GlpkSolver {
             command_name: self.command_name.clone(),
             temp_solution_file: Some(temp_solution_file.into()),
             seconds: self.seconds,
+            mipgap: self.mipgap,
         }
     }
 }
@@ -136,6 +142,23 @@ impl WithMaxSeconds<GlpkSolver> for GlpkSolver {
     }
 }
 
+impl WithMipGap<GlpkSolver> for GlpkSolver {
+    fn mip_gap(&self) -> Option<f32> {
+        self.mipgap
+    }
+
+    fn with_mip_gap(&self, mipgap: f32) -> Result<GlpkSolver, String> {
+        if mipgap >= 0.0 {
+            Ok(GlpkSolver {
+                mipgap: Some(mipgap),
+                ..(*self).clone()
+            })
+        } else {
+            Err("Invalid MIP gap: must be >= 0".to_string())
+        }
+    }
+}
+
 impl SolverProgram for GlpkSolver {
     fn command_name(&self) -> &str {
         &self.command_name
@@ -149,11 +172,14 @@ impl SolverProgram for GlpkSolver {
             solution_file.into(),
         ];
 
-        for (name, value) in [("--tmlim", self.max_seconds())].iter() {
-            if let Some(val) = value {
-                args.push(name.into());
-                args.push(val.to_string().into());
-            }
+        if let Some(seconds) = self.max_seconds() {
+            args.push("--tmlim".into());
+            args.push(seconds.to_string().into());
+        }
+
+        if let Some(mipgap) = self.mip_gap() {
+            args.push("--mipgap".into());
+            args.push(mipgap.to_string().into());
         }
 
         args
