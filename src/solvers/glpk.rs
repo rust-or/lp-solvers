@@ -198,34 +198,27 @@ mod tests {
 
     #[test]
     fn cli_args_default() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-
         let solver = GlpkSolver::new();
-        let args = solver.arguments(lp_file, sol_file);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> =
-            vec!["--lp".into(), lp_file.into(), "-o".into(), sol_file.into()];
+            vec!["--lp".into(), "test.lp".into(), "-o".into(), "test.sol".into()];
 
         assert_eq!(args, expected);
     }
 
     #[test]
     fn cli_args_seconds() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-        let seconds = 10;
-
-        let solver = GlpkSolver::new().with_max_seconds(seconds);
-        let args = solver.arguments(lp_file, sol_file);
+        let solver = GlpkSolver::new().with_max_seconds(10);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
             "--lp".into(),
-            lp_file.into(),
+            "test.lp".into(),
             "-o".into(),
-            sol_file.into(),
+            "test.sol".into(),
             "--tmlim".into(),
-            seconds.to_string().into(),
+            "10".into(),
         ];
 
         assert_eq!(args, expected);
@@ -233,22 +226,19 @@ mod tests {
 
     #[test]
     fn cli_args_mipgap() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-        let mipgap = 0.05;
-
         let solver = GlpkSolver::new()
-            .with_mip_gap(mipgap)
+            .with_mip_gap(0.05)
             .expect("mipgap should be valid");
-        let args = solver.arguments(lp_file, sol_file);
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
             "--lp".into(),
-            lp_file.into(),
+            "test.lp".into(),
             "-o".into(),
-            sol_file.into(),
+            "test.sol".into(),
             "--mipgap".into(),
-            mipgap.to_string().into(),
+            "0.05".into(),
         ];
 
         assert_eq!(args, expected);

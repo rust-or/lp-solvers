@@ -213,17 +213,14 @@ mod tests {
 
     #[test]
     fn cli_args_default() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-
         let solver = CbcSolver::new();
-        let args = solver.arguments(lp_file, sol_file);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            lp_file.into(),
+            "test.lp".into(),
             "solve".into(),
             "solution".into(),
-            sol_file.into(),
+            "test.sol".into(),
         ];
 
         assert_eq!(args, expected);
@@ -231,20 +228,16 @@ mod tests {
 
     #[test]
     fn cli_args_seconds() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-        let seconds = 10;
-
-        let solver = CbcSolver::new().with_max_seconds(seconds);
-        let args = solver.arguments(lp_file, sol_file);
+        let solver = CbcSolver::new().with_max_seconds(10);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            lp_file.into(),
+            "test.lp".into(),
             "seconds".into(),
-            seconds.to_string().into(),
+            "10".into(),
             "solve".into(),
             "solution".into(),
-            sol_file.into(),
+            "test.sol".into(),
         ];
 
         assert_eq!(args, expected);
@@ -252,22 +245,19 @@ mod tests {
 
     #[test]
     fn cli_args_mipgap() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-        let mipgap = 0.05;
-
         let solver = CbcSolver::new()
-            .with_mip_gap(mipgap)
+            .with_mip_gap(0.05)
             .expect("mipgap should be valid");
-        let args = solver.arguments(lp_file, sol_file);
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            lp_file.into(),
+            "test.lp".into(),
             "ratiogap".into(),
-            mipgap.to_string().into(),
+            "0.05".to_string().into(),
             "solve".into(),
             "solution".into(),
-            sol_file.into(),
+            "test.sol".into(),
         ];
 
         assert_eq!(args, expected);
@@ -287,20 +277,16 @@ mod tests {
 
     #[test]
     fn cli_args_threads() {
-        let lp_file = Path::new("test.lp");
-        let sol_file = Path::new("test.sol");
-        let threads = 2;
-
-        let solver = CbcSolver::new().with_nb_threads(threads);
-        let args = solver.arguments(lp_file, sol_file);
+        let solver = CbcSolver::new().with_nb_threads(3);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            lp_file.into(),
+            "test.lp".into(),
             "threads".into(),
-            threads.to_string().into(),
+            "3".into(),
             "solve".into(),
             "solution".into(),
-            sol_file.into(),
+            "test.sol".into(),
         ];
 
         assert_eq!(args, expected);

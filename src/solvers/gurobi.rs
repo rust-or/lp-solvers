@@ -146,15 +146,12 @@ mod tests {
 
     #[test]
     fn cli_args_default() {
-        let lp_file = "test.lp".to_string();
-        let sol_file = "test.sol".to_string();
-
         let solver = GurobiSolver::new();
-        let args = solver.arguments(Path::new(&lp_file), Path::new(&sol_file));
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            ("ResultFile=".to_string() + &sol_file).into(),
-            lp_file.into(),
+            "ResultFile=test.sol".into(),
+            "test.lp".into(),
         ];
 
         assert_eq!(args, expected);
@@ -162,19 +159,16 @@ mod tests {
 
     #[test]
     fn cli_args_mipgap() {
-        let lp_file = "test.lp".to_string();
-        let sol_file = "test.sol".to_string();
-        let mipgap = 0.05;
-
         let solver = GurobiSolver::new()
-            .with_mip_gap(mipgap)
+            .with_mip_gap(0.05)
             .expect("mipgap should be valid");
-        let args = solver.arguments(Path::new(&lp_file), Path::new(&sol_file));
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec![
-            ("ResultFile=".to_string() + &sol_file).into(),
-            ("MIPGap=".to_string() + &mipgap.to_string()).into(),
-            lp_file.into(),
+            "ResultFile=test.sol".into(),
+            "MIPGap=0.05".into(),
+            "test.lp".into(),
         ];
 
         assert_eq!(args, expected);
