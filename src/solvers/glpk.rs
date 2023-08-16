@@ -189,3 +189,80 @@ impl SolverProgram for GlpkSolver {
         self.temp_solution_file.as_deref()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::solvers::{GlpkSolver, SolverProgram, WithMaxSeconds, WithMipGap};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    #[test]
+    fn cli_args_default() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+
+        let solver = GlpkSolver::new();
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> =
+            vec!["--lp".into(), lp_file.into(), "-o".into(), sol_file.into()];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_seconds() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+        let seconds = 10;
+
+        let solver = GlpkSolver::new().with_max_seconds(seconds);
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            lp_file.into(),
+            "-o".into(),
+            sol_file.into(),
+            "--tmlim".into(),
+            seconds.to_string().into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+        let mipgap = 0.05;
+
+        let solver = GlpkSolver::new()
+            .with_mip_gap(mipgap)
+            .expect("mipgap should be valid");
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            lp_file.into(),
+            "-o".into(),
+            sol_file.into(),
+            "--mipgap".into(),
+            mipgap.to_string().into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap_negative() {
+        let solver = GlpkSolver::new().with_mip_gap(-0.05);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_mipgap_infinite() {
+        let solver = GlpkSolver::new().with_mip_gap(f32::INFINITY);
+        assert!(solver.is_err());
+    }
+}
