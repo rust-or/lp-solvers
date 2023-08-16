@@ -137,3 +137,58 @@ impl SolverProgram for GurobiSolver {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::solvers::{GurobiSolver, SolverProgram, WithMipGap};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    #[test]
+    fn cli_args_default() {
+        let lp_file = "test.lp".to_string();
+        let sol_file = "test.sol".to_string();
+
+        let solver = GurobiSolver::new();
+        let args = solver.arguments(Path::new(&lp_file), Path::new(&sol_file));
+
+        let expected: Vec<OsString> = vec![
+            ("ResultFile=".to_string() + &sol_file).into(),
+            lp_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap() {
+        let lp_file = "test.lp".to_string();
+        let sol_file = "test.sol".to_string();
+        let mipgap = 0.05;
+
+        let solver = GurobiSolver::new()
+            .with_mip_gap(mipgap)
+            .expect("mipgap should be valid");
+        let args = solver.arguments(Path::new(&lp_file), Path::new(&sol_file));
+
+        let expected: Vec<OsString> = vec![
+            ("ResultFile=".to_string() + &sol_file).into(),
+            ("MIPGap=".to_string() + &mipgap.to_string()).into(),
+            lp_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap_negative() {
+        let solver = GurobiSolver::new().with_mip_gap(-0.05);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_mipgap_infinite() {
+        let solver = GurobiSolver::new().with_mip_gap(f32::INFINITY);
+        assert!(solver.is_err());
+    }
+}
