@@ -201,8 +201,12 @@ mod tests {
         let solver = GlpkSolver::new();
         let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
-        let expected: Vec<OsString> =
-            vec!["--lp".into(), "test.lp".into(), "-o".into(), "test.sol".into()];
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+        ];
 
         assert_eq!(args, expected);
     }
@@ -254,5 +258,28 @@ mod tests {
     fn cli_args_mipgap_infinite() {
         let solver = GlpkSolver::new().with_mip_gap(f32::INFINITY);
         assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_multiple() {
+        let solver = GlpkSolver::new()
+            .with_max_seconds(10)
+            .with_mip_gap(0.05)
+            .expect("mipgap should be valid");
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+            "--tmlim".into(),
+            "10".into(),
+            "--mipgap".into(),
+            "0.05".into(),
+        ];
+
+        assert_eq!(args, expected);
     }
 }

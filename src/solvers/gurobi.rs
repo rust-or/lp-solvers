@@ -149,10 +149,7 @@ mod tests {
         let solver = GurobiSolver::new();
         let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
-        let expected: Vec<OsString> = vec![
-            "ResultFile=test.sol".into(),
-            "test.lp".into(),
-        ];
+        let expected: Vec<OsString> = vec!["ResultFile=test.sol".into(), "test.lp".into()];
 
         assert_eq!(args, expected);
     }

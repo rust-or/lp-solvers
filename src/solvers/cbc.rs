@@ -291,4 +291,30 @@ mod tests {
 
         assert_eq!(args, expected);
     }
+
+    #[test]
+    fn cli_args_multiple() {
+        let solver = CbcSolver::new()
+            .with_nb_threads(3)
+            .with_max_seconds(10)
+            .with_mip_gap(0.05)
+            .expect("mipgap should be valid");
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "test.lp".into(),
+            "ratiogap".into(),
+            "0.05".into(),
+            "seconds".into(),
+            "10".into(),
+            "threads".into(),
+            "3".into(),
+            "solve".into(),
+            "solution".into(),
+            "test.sol".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
 }
