@@ -204,3 +204,105 @@ impl SolverProgram for CbcSolver {
         self.temp_solution_file.as_deref()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::solvers::{CbcSolver, SolverProgram, WithMaxSeconds, WithMipGap, WithNbThreads};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    #[test]
+    fn cli_args_default() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+
+        let solver = CbcSolver::new();
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            lp_file.into(),
+            "solve".into(),
+            "solution".into(),
+            sol_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_seconds() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+        let seconds = 10;
+
+        let solver = CbcSolver::new().with_max_seconds(seconds);
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            lp_file.into(),
+            "seconds".into(),
+            seconds.to_string().into(),
+            "solve".into(),
+            "solution".into(),
+            sol_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+        let mipgap = 0.05;
+
+        let solver = CbcSolver::new()
+            .with_mip_gap(mipgap)
+            .expect("mipgap should be valid");
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            lp_file.into(),
+            "ratiogap".into(),
+            mipgap.to_string().into(),
+            "solve".into(),
+            "solution".into(),
+            sol_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap_negative() {
+        let solver = CbcSolver::new().with_mip_gap(-0.05);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_mipgap_infinite() {
+        let solver = CbcSolver::new().with_mip_gap(f32::INFINITY);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_threads() {
+        let lp_file = Path::new("test.lp");
+        let sol_file = Path::new("test.sol");
+        let threads = 2;
+
+        let solver = CbcSolver::new().with_nb_threads(threads);
+        let args = solver.arguments(lp_file, sol_file);
+
+        let expected: Vec<OsString> = vec![
+            lp_file.into(),
+            "threads".into(),
+            threads.to_string().into(),
+            "solve".into(),
+            "solution".into(),
+            sol_file.into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+}
