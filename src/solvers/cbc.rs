@@ -151,13 +151,13 @@ impl WithMipGap<CbcSolver> for CbcSolver {
     }
 
     fn with_mip_gap(&self, mipgap: f32) -> Result<CbcSolver, String> {
-        if mipgap >= 0.0 {
+        if mipgap.is_sign_positive() && mipgap.is_finite() {
             Ok(CbcSolver {
                 mipgap: Some(mipgap),
                 ..(*self).clone()
             })
         } else {
-            Err("Invalid MIP gap: must be >= 0".to_string())
+            Err("Invalid MIP gap: must be positive and finite".to_string())
         }
     }
 }
