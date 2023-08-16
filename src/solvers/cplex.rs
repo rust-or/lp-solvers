@@ -139,3 +139,56 @@ impl SolverWithSolutionParsing for Cplex {
         Ok(solution)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::solvers::{Cplex, SolverProgram, WithMipGap};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    #[test]
+    fn cli_args_default() {
+        let solver = Cplex::default();
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "-c".into(),
+            "READ \"test.lp\"".into(),
+            "optimize".into(),
+            "WRITE \"test.sol\"".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap() {
+        let solver = Cplex::default()
+            .with_mip_gap(0.5)
+            .expect("mipgap should be valid");
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "-c".into(),
+            "READ \"test.lp\"".into(),
+            "set mip tolerances mipgap 0.5".into(),
+            "optimize".into(),
+            "WRITE \"test.sol\"".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap_negative() {
+        let solver = Cplex::default().with_mip_gap(-0.05);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_mipgap_infinite() {
+        let solver = Cplex::default().with_mip_gap(f32::INFINITY);
+        assert!(solver.is_err());
+    }
+}
