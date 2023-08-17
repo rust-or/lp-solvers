@@ -206,6 +206,14 @@ pub trait WithNbThreads<T> {
     fn with_nb_threads(&self, threads: u32) -> T;
 }
 
+/// Configure the MIP (optimality) gap
+pub trait WithMipGap<T> {
+    /// get MIP gap
+    fn mip_gap(&self) -> Option<f32>;
+    /// set MIP gap
+    fn with_mip_gap(&self, mipgap: f32) -> Result<T, String>;
+}
+
 /// A static version of a solver, where the solver itself doesn't hold any data
 ///
 /// ```

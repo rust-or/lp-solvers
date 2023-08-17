@@ -8,7 +8,9 @@ use std::io::{BufRead, BufReader, Error};
 use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds};
+use crate::solvers::{
+    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithMipGap,
+};
 
 /// glpk solver
 #[derive(Debug, Clone)]
@@ -17,6 +19,7 @@ pub struct GlpkSolver {
     command_name: String,
     temp_solution_file: Option<PathBuf>,
     seconds: Option<u32>,
+    mipgap: Option<f32>,
 }
 
 impl Default for GlpkSolver {
@@ -33,6 +36,7 @@ impl GlpkSolver {
             command_name: "glpsol".to_string(),
             temp_solution_file: None,
             seconds: None,
+            mipgap: None,
         }
     }
     /// Set the glpk command name
@@ -42,6 +46,7 @@ impl GlpkSolver {
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
             seconds: self.seconds,
+            mipgap: self.mipgap,
         }
     }
     /// Set the temporary solution file to use
@@ -51,6 +56,7 @@ impl GlpkSolver {
             command_name: self.command_name.clone(),
             temp_solution_file: Some(temp_solution_file.into()),
             seconds: self.seconds,
+            mipgap: self.mipgap,
         }
     }
 }
@@ -136,6 +142,23 @@ impl WithMaxSeconds<GlpkSolver> for GlpkSolver {
     }
 }
 
+impl WithMipGap<GlpkSolver> for GlpkSolver {
+    fn mip_gap(&self) -> Option<f32> {
+        self.mipgap
+    }
+
+    fn with_mip_gap(&self, mipgap: f32) -> Result<GlpkSolver, String> {
+        if mipgap.is_sign_positive() && mipgap.is_finite() {
+            Ok(GlpkSolver {
+                mipgap: Some(mipgap),
+                ..(*self).clone()
+            })
+        } else {
+            Err("Invalid MIP gap: must be positive and finite".to_string())
+        }
+    }
+}
+
 impl SolverProgram for GlpkSolver {
     fn command_name(&self) -> &str {
         &self.command_name
@@ -149,11 +172,14 @@ impl SolverProgram for GlpkSolver {
             solution_file.into(),
         ];
 
-        for (name, value) in [("--tmlim", self.max_seconds())].iter() {
-            if let Some(val) = value {
-                args.push(name.into());
-                args.push(val.to_string().into());
-            }
+        if let Some(seconds) = self.max_seconds() {
+            args.push("--tmlim".into());
+            args.push(seconds.to_string().into());
+        }
+
+        if let Some(mipgap) = self.mip_gap() {
+            args.push("--mipgap".into());
+            args.push(mipgap.to_string().into());
         }
 
         args
@@ -161,5 +187,99 @@ impl SolverProgram for GlpkSolver {
 
     fn preferred_temp_solution_file(&self) -> Option<&Path> {
         self.temp_solution_file.as_deref()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::solvers::{GlpkSolver, SolverProgram, WithMaxSeconds, WithMipGap};
+    use std::ffi::OsString;
+    use std::path::Path;
+
+    #[test]
+    fn cli_args_default() {
+        let solver = GlpkSolver::new();
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_seconds() {
+        let solver = GlpkSolver::new().with_max_seconds(10);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+            "--tmlim".into(),
+            "10".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap() {
+        let solver = GlpkSolver::new()
+            .with_mip_gap(0.05)
+            .expect("mipgap should be valid");
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+            "--mipgap".into(),
+            "0.05".into(),
+        ];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_mipgap_negative() {
+        let solver = GlpkSolver::new().with_mip_gap(-0.05);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_mipgap_infinite() {
+        let solver = GlpkSolver::new().with_mip_gap(f32::INFINITY);
+        assert!(solver.is_err());
+    }
+
+    #[test]
+    fn cli_args_multiple() {
+        let solver = GlpkSolver::new()
+            .with_max_seconds(10)
+            .with_mip_gap(0.05)
+            .expect("mipgap should be valid");
+
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "--lp".into(),
+            "test.lp".into(),
+            "-o".into(),
+            "test.sol".into(),
+            "--tmlim".into(),
+            "10".into(),
+            "--mipgap".into(),
+            "0.05".into(),
+        ];
+
+        assert_eq!(args, expected);
     }
 }
