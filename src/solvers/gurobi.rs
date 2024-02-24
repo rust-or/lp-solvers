@@ -127,6 +127,10 @@ impl SolverProgram for GurobiSolver {
         self.temp_solution_file.as_deref()
     }
 
+    fn solution_suffix(&self) -> Option<&str> {
+        Some(".sol")
+    }
+
     fn parse_stdout_status(&self, stdout: &[u8]) -> Option<Status> {
         if buf_contains(stdout, "Optimal solution found") {
             Some(Status::Optimal)
