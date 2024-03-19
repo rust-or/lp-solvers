@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::Formatter;
 use std::io::prelude::*;
+use std::io::BufWriter;
 use std::io::Result;
 
 use tempfile::NamedTempFile;
@@ -136,8 +137,16 @@ pub trait LpProblem<'a>: Sized {
             .prefix(self.name())
             .suffix(".lp")
             .tempfile()?;
-        write!(f, "{}", self.display_lp())?;
-        f.flush()?;
+
+        // Use a buffered writer to limit the number of syscalls
+        let mut buf_f = BufWriter::new(&mut f);
+        write!(buf_f, "{}", self.display_lp())?;
+        buf_f.flush()?;
+
+        // need to explicitly drop the buffered writer here,
+        // since it holds a reference to the actual file
+        drop(buf_f);
+
         Ok(f)
     }
 }

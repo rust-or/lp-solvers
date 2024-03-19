@@ -22,8 +22,8 @@ exclude = [
 ]
 
 [features]
-cplex = ["xml-rs"]
+cplex = []
 
 [dependencies]
 tempfile = "3"
-xml-rs = { version = "0.8.3", optional = true }
+quick-xml = "0.31"
