@@ -1,6 +1,6 @@
 [package]
 name = "lp-solvers"
-version = "1.0.1"
+version = "1.1.0"
 authors = ["Joel Cavat <jcavat@gmail.com>", "Ophir LOJKINE"]
 description = ".lp file format implementation and external solver invocation for Cbc, Gurobi, cplex, and GLPK"
 repository = "https://github.com/rust-or/lp-solvers"
