@@ -26,4 +26,4 @@ cplex = []
 
 [dependencies]
 tempfile = "3"
-quick-xml = "0.31"
+quick-xml = "0.38"
