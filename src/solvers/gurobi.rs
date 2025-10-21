@@ -6,7 +6,9 @@ use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 
 use crate::lp_format::*;
-use crate::solvers::{Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMipGap};
+use crate::solvers::{
+    Solution, SolverProgram, SolverWithSolutionParsing, Status, WithMaxSeconds, WithMipGap,
+};
 use crate::util::buf_contains;
 
 /// The proprietary gurobi solver
@@ -15,6 +17,7 @@ pub struct GurobiSolver {
     name: String,
     command_name: String,
     temp_solution_file: Option<PathBuf>,
+    seconds: Option<u32>,
     mipgap: Option<f32>,
 }
 
@@ -31,6 +34,7 @@ impl GurobiSolver {
             name: "Gurobi".to_string(),
             command_name: "gurobi_cl".to_string(),
             temp_solution_file: None,
+            seconds: None,
             mipgap: None,
         }
     }
@@ -40,6 +44,7 @@ impl GurobiSolver {
             name: self.name.clone(),
             command_name,
             temp_solution_file: self.temp_solution_file.clone(),
+            seconds: None,
             mipgap: self.mipgap,
         }
     }
@@ -84,6 +89,19 @@ impl SolverWithSolutionParsing for GurobiSolver {
     }
 }
 
+impl WithMaxSeconds<GurobiSolver> for GurobiSolver {
+    fn max_seconds(&self) -> Option<u32> {
+        self.seconds
+    }
+
+    fn with_max_seconds(&self, seconds: u32) -> GurobiSolver {
+        GurobiSolver {
+            seconds: Some(seconds),
+            ..(*self).clone()
+        }
+    }
+}
+
 impl WithMipGap<GurobiSolver> for GurobiSolver {
     fn mip_gap(&self) -> Option<f32> {
         self.mipgap
@@ -118,6 +136,12 @@ impl SolverProgram for GurobiSolver {
             args.push(arg_mipgap);
         }
 
+        if let Some(seconds) = self.max_seconds() {
+            let mut arg_timelimit: OsString = "TimeLimit=".into();
+            arg_timelimit.push::<OsString>(seconds.to_string().into());
+            args.push(arg_timelimit);
+        }
+
         args.push(lp_file.into());
 
         args
@@ -144,7 +168,7 @@ impl SolverProgram for GurobiSolver {
 
 #[cfg(test)]
 mod tests {
-    use crate::solvers::{GurobiSolver, SolverProgram, WithMipGap};
+    use crate::solvers::{GurobiSolver, SolverProgram, WithMaxSeconds, WithMipGap};
     use std::ffi::OsString;
     use std::path::Path;
 
@@ -154,6 +178,20 @@ mod tests {
         let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
 
         let expected: Vec<OsString> = vec!["ResultFile=test.sol".into(), "test.lp".into()];
+
+        assert_eq!(args, expected);
+    }
+
+    #[test]
+    fn cli_args_seconds() {
+        let solver = GurobiSolver::new().with_max_seconds(10);
+        let args = solver.arguments(Path::new("test.lp"), Path::new("test.sol"));
+
+        let expected: Vec<OsString> = vec![
+            "ResultFile=test.sol".into(),
+            "TimeLimit=10".into(),
+            "test.lp".into(),
+        ];
 
         assert_eq!(args, expected);
     }
