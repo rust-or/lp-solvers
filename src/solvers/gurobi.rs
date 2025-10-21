@@ -160,6 +160,8 @@ impl SolverProgram for GurobiSolver {
             Some(Status::Optimal)
         } else if buf_contains(stdout, "infeasible") {
             Some(Status::Infeasible)
+        } else if buf_contains(stdout, "Time limit reached") {
+            Some(Status::SubOptimal)
         } else {
             None
         }
