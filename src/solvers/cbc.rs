@@ -95,7 +95,7 @@ impl SolverWithSolutionParsing for CbcSolver {
                     if let Some(substatus) = buffer_split.next() {
                         match substatus {
                             // MIP gap stops are "Optimal (within gap tolerance)"
-                            "(within" => Status::SubOptimal,
+                            "(within" => Status::MipGap,
                             _ => Status::Optimal,
                         }
                     } else {
