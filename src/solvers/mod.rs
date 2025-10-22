@@ -51,6 +51,10 @@ pub mod gurobi;
 pub enum Status {
     /// the best possible solution was found
     Optimal,
+    /// The time limit was reached
+    TimeLimit,
+    /// The MipGap was reached
+    MipGap,
     /// A solution was found; it may not be the best one.
     SubOptimal,
     /// There is no solution for the problem
