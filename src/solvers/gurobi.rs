@@ -158,10 +158,14 @@ impl SolverProgram for GurobiSolver {
     fn parse_stdout_status(&self, stdout: &[u8]) -> Option<Status> {
         if buf_contains(stdout, "Optimal solution found") {
             Some(Status::Optimal)
-        } else if buf_contains(stdout, "infeasible") {
-            Some(Status::Infeasible)
         } else if buf_contains(stdout, "Time limit reached") {
-            Some(Status::SubOptimal)
+            if buf_contains(stdout, "Best objective -,") {
+                Some(Status::NotSolved)
+            } else {
+                Some(Status::SubOptimal)
+            }
+        } else if buf_contains(stdout, "infeasible") || buf_contains(stdout, "Infeasible model") {
+            Some(Status::Infeasible)
         } else {
             None
         }
