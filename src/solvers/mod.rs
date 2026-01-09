@@ -218,6 +218,12 @@ pub trait WithMipGap<T> {
     fn with_mip_gap(&self, mipgap: f32) -> Result<T, String>;
 }
 
+/// Provide a MIP start: (partial) initial solution
+pub trait WithMipStart<T> {
+    /// set MIP start
+    fn with_mip_start(&self, assignments: &HashMap<String, f32>) -> Result<T, String>;
+}
+
 /// A static version of a solver, where the solver itself doesn't hold any data
 ///
 /// ```
