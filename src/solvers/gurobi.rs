@@ -217,7 +217,8 @@ impl SolverProgram for GurobiSolver {
 mod tests {
     use crate::solvers::{GurobiSolver, SolverProgram, WithMaxSeconds, WithMipGap, WithMipStart};
     use std::collections::HashMap;
-    use std::ffi::OsString;
+    use std::env::temp_dir;
+    use std::ffi::{OsStr, OsString};
     use std::path::Path;
 
     #[test]
@@ -279,20 +280,25 @@ mod tests {
             .to_string_lossy()
             .to_string();
 
-        let input_file_path = input_file_argument.strip_prefix("InputFile=").unwrap();
+        let input_file_path = Path::new(input_file_argument.strip_prefix("InputFile=").unwrap());
+
         assert!(
-            input_file_path.starts_with("/tmp/"),
-            "InputFile not in /tmp: {}",
+            input_file_path.exists(),
+            "MIP start file does not exist: {:?}",
             input_file_path
         );
-        assert!(
-            input_file_path.ends_with(".mst"),
-            "InputFile not an .mst: {}",
+
+        assert_eq!(
+            input_file_path.extension(),
+            Some(OsStr::new("mst")),
+            "InputFile not an .mst: {:?}",
             input_file_path
         );
+
         assert!(
-            std::path::Path::new(input_file_path).exists(),
-            "MIP start file does not exist: {}",
+            input_file_path.starts_with(&temp_dir()),
+            "InputFile not under temp dir.\n  temp: {:?}\n  file: {:?}",
+            temp_dir(),
             input_file_path
         );
     }
