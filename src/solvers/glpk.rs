@@ -84,14 +84,8 @@ impl SolverWithSolutionParsing for GlpkSolver {
         let file = BufReader::new(f);
 
         let mut iter = file.lines();
-        let row = match read_size(iter.nth(1)) {
-            Ok(value) => value,
-            Err(e) => return Err(e),
-        };
-        let col = match read_size(iter.next()) {
-            Ok(value) => value,
-            Err(e) => return Err(e),
-        };
+        let row = read_size(iter.nth(1))?;
+        let col = read_size(iter.next())?;
         let status = match iter.nth(1) {
             Some(Ok(status_line)) => match &status_line[12..] {
                 "INTEGER OPTIMAL" | "OPTIMAL" => Status::Optimal,

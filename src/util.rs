@@ -35,7 +35,7 @@ impl UniqueNameGenerator {
     }
 }
 
-fn stem(name: &str) -> Cow<str> {
+fn stem(name: &str) -> Cow<'_, str> {
     if name.contains(|c: char| !c.is_ascii_alphabetic()) || name.is_empty() {
         let mut owned = name.replace(|c: char| !c.is_ascii_alphabetic(), "");
         if owned.is_empty() {

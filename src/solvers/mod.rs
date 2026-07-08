@@ -51,6 +51,10 @@ pub mod gurobi;
 pub enum Status {
     /// the best possible solution was found
     Optimal,
+    /// The time limit was reached
+    TimeLimit,
+    /// The MipGap was reached
+    MipGap,
     /// A solution was found; it may not be the best one.
     SubOptimal,
     /// There is no solution for the problem
@@ -214,6 +218,12 @@ pub trait WithMipGap<T> {
     fn mip_gap(&self) -> Option<f32>;
     /// set MIP gap
     fn with_mip_gap(&self, mipgap: f32) -> Result<T, String>;
+}
+
+/// Provide a MIP start: (partial) initial solution
+pub trait WithMipStart<T> {
+    /// set MIP start
+    fn with_mip_start(&self, assignments: &HashMap<String, f32>) -> Result<T, String>;
 }
 
 /// A static version of a solver, where the solver itself doesn't hold any data

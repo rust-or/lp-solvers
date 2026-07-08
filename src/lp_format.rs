@@ -26,7 +26,7 @@ pub trait WriteToLpFileFormat {
     fn to_lp_file_format(&self, f: &mut fmt::Formatter) -> fmt::Result;
 }
 
-impl<'a, T: WriteToLpFileFormat> WriteToLpFileFormat for &'a T {
+impl<T: WriteToLpFileFormat> WriteToLpFileFormat for &T {
     fn to_lp_file_format(&self, f: &mut Formatter) -> fmt::Result {
         (*self).to_lp_file_format(f)
     }
@@ -44,7 +44,7 @@ pub trait AsVariable {
     fn upper_bound(&self) -> f64;
 }
 
-impl<'a, T: AsVariable> AsVariable for &'a T {
+impl<T: AsVariable> AsVariable for &T {
     fn name(&self) -> &str {
         (*self).name()
     }
@@ -121,7 +121,7 @@ pub trait LpProblem<'a>: Sized {
         Ok(())
     }
     /// Return an object whose [fmt::Display] implementation is the problem in the .lp format
-    fn display_lp(&'a self) -> DisplayedLp<'_, Self>
+    fn display_lp(&'a self) -> DisplayedLp<'a, Self>
     where
         Self: Sized,
     {
