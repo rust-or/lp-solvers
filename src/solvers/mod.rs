@@ -28,7 +28,7 @@ use std::ffi::OsString;
 use std::fs::File;
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::lp_format::LpProblem;
 
@@ -163,7 +163,9 @@ impl<T: SolverWithSolutionParsing + SolverProgram> SolverTrait for T {
 
         let output = Command::new(command_name)
             .args(arguments)
-            .output()
+            .stdout(Stdio::inherit())
+            .spawn().expect("Failed to spawn process")
+            .wait_with_output()
             .map_err(|e| format!("Error while running {}: {}", command_name, e))?;
 
         if !output.status.success() {

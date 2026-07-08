@@ -12,6 +12,8 @@ use crate::solvers::{
 };
 use crate::util::buf_contains;
 
+use super::WithNbThreads;
+
 /// The proprietary gurobi solver
 #[derive(Debug, Clone)]
 pub struct GurobiSolver {
@@ -21,6 +23,12 @@ pub struct GurobiSolver {
     temp_mip_start_file: Option<PathBuf>,
     seconds: Option<u32>,
     mipgap: Option<f32>,
+    threads: Option<u32>,
+    algorithm: Option<u32>,
+    crossover: Option<u32>,
+    verbose: Option<u32>,
+    predual: Option<u32>,
+    barconvtol: Option<f32>
 }
 
 impl Default for GurobiSolver {
@@ -39,6 +47,12 @@ impl GurobiSolver {
             temp_mip_start_file: None,
             seconds: None,
             mipgap: None,
+            threads: None,
+            algorithm: None,
+            crossover: None,
+            verbose: None,
+            predual: None,
+            barconvtol: None
         }
     }
     /// set the name of the commandline gurobi executable to use
@@ -50,6 +64,72 @@ impl GurobiSolver {
             temp_mip_start_file: self.temp_mip_start_file.clone(),
             seconds: None,
             mipgap: self.mipgap,
+            threads: self.threads,
+            algorithm: self.algorithm.clone(),
+            crossover: self.crossover,
+            verbose: self.verbose,
+            predual: self.predual,
+            barconvtol: self.barconvtol
+        }
+    }
+
+    fn algorithm(&self) -> Option<u32> {
+        self.algorithm
+    }
+
+    /// Add solving method using gurobi syntax
+    pub fn with_algorithm(&self, algorithm: u32) -> GurobiSolver {
+        GurobiSolver {
+            algorithm: Some(algorithm),
+            ..(*self).clone()
+        }
+    }
+
+    fn crossover(&self) -> Option<u32> {
+        self.crossover
+    }
+
+    /// Tell gurobi to use crossover
+    pub fn with_crossover(&self, crossover: u32) -> GurobiSolver {
+        GurobiSolver {
+            crossover: Some(crossover),
+            ..(*self).clone()
+        }
+    }
+
+    fn verbose(&self) -> Option<u32> {
+        self.verbose
+    }
+
+    /// Toggle verbose
+    pub fn set_verbose(&self, verbose: u32) -> GurobiSolver {
+        GurobiSolver {
+            verbose: Some(verbose),
+            ..(*self).clone()
+        }
+    }
+
+    fn predual(&self) -> Option<u32> {
+        self.predual
+    }
+
+    /// Toggle predual
+    pub fn set_predual(&self, predual: u32) -> GurobiSolver {
+        GurobiSolver {
+            predual: Some(predual),
+            ..(*self).clone()
+        }
+    }
+
+    fn barconvtol(&self) -> Option<f32> {
+        self.barconvtol
+    }
+
+    /// Toggle predual
+    pub fn with_barconvtol(&self, barconvtol: f32) -> GurobiSolver {
+        GurobiSolver {
+            barconvtol: Some(barconvtol),
+            ..(*self).clone()
         }
     }
 }
@@ -123,6 +203,18 @@ impl WithMipGap<GurobiSolver> for GurobiSolver {
     }
 }
 
+
+impl WithNbThreads<GurobiSolver> for GurobiSolver {
+    fn nb_threads(&self) -> Option<u32> {
+        self.threads
+    }
+    fn with_nb_threads(&self, threads: u32) -> GurobiSolver {
+        GurobiSolver {
+            threads: Some(threads),
+            ..(*self).clone()
+        }
+    }
+}
 impl WithMipStart<GurobiSolver> for GurobiSolver {
     /// create a (temporary) mip start file (.mst) and store the path reference in the solver struct.
     /// file is persisted; caller may want to delete
@@ -169,6 +261,41 @@ impl SolverProgram for GurobiSolver {
             args.push(arg_mipgap);
         }
 
+        if let Some(threads) = self.nb_threads() {
+            let mut arg_threads: OsString = "Threads=".into();
+            arg_threads.push::<OsString>(threads.to_string().into());
+            args.push(arg_threads);
+        }
+
+        if let Some(algo) = self.algorithm() {
+            let mut arg_algo: OsString = "Method=".into();
+            arg_algo.push::<OsString>(algo.to_string().into());
+            args.push(arg_algo);
+        }
+
+        if let Some(crossover) = self.crossover() {
+            let mut arg_crossover: OsString = "Crossover=".into();
+            arg_crossover.push::<OsString>(crossover.to_string().into());
+            args.push(arg_crossover);
+        }
+
+        if let Some(verbose) = self.verbose() {
+            let mut arg_verbose: OsString = "LogToConsole=".into();
+            arg_verbose.push::<OsString>(verbose.to_string().into());
+            args.push(arg_verbose);
+        }
+
+        if let Some(predual) = self.predual() {
+            let mut arg_predual: OsString = "PreDual=".into();
+            arg_predual.push::<OsString>(predual.to_string().into());
+            args.push(arg_predual);
+        }
+
+        if let Some(barconvtol) = self.barconvtol() {
+            let mut arg_barconvtol: OsString = "BarConvTol=".into();
+            arg_barconvtol.push::<OsString>(barconvtol.to_string().into());
+            args.push(arg_barconvtol);
+        }
         if let Some(seconds) = self.max_seconds() {
             let mut arg_timelimit: OsString = "TimeLimit=".into();
             arg_timelimit.push::<OsString>(seconds.to_string().into());
